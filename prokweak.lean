@@ -4,7 +4,7 @@ import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 import Mathlib.Topology.Defs.Basic
 import Mathlib.Topology.MetricSpace.Defs
-
+import Mathlib.MeasureTheory.Measure.Portmanteau
 --set_option diagnostics true
 
 open Topology Metric Filter Set ENNReal NNReal ProbabilityMeasure TopologicalSpace
@@ -32,7 +32,7 @@ noncomputable section
 -- α is Foo, ofSyn is .equiv
 
 
-variable (S : Set (LevyProkhorov (ProbabilityMeasure Ω))) --(S : Set (ProbabilityMeasure Ω)) --
+variable (S : Set (ProbabilityMeasure Ω)) --(S : Set (LevyProkhorov (ProbabilityMeasure Ω))) --
 
 abbrev P := LevyProkhorov.equiv (ProbabilityMeasure Ω)
 
@@ -41,17 +41,18 @@ abbrev T := P⁻¹' S
 
 variable [OpensMeasurableSpace Ω] in
 
-theorem tendsto_iff_forall_integral_tendsto_prok (γ : Type*) (F : Filter γ) {B : Set Ω}
-    {μs : γ → LevyProkhorov (ProbabilityMeasure Ω)} {μ : LevyProkhorov (ProbabilityMeasure Ω)} :
-    Tendsto (fun k => (P (μs k)) B) F (𝓝 (P μ B)) ↔ Tendsto (fun k => (μs k)) F (𝓝 μ) := by sorry
-
-
-lemma tendsto_in_Prok_eq_tendsto_in_weak {μ : ℕ → (ProbabilityMeasure Ω)} {μlim : ProbabilityMeasure Ω} (h : Tendsto μ atTop (𝓝 μlim)) :
-  Tendsto (fun n => P (μ n)) atTop (𝓝 μlim) := by sorry
+theorem tendsto_iff_forall_integral_tendsto_prok {γ : Type*} {F : Filter γ}
+    {μs : γ → LevyProkhorov (ProbabilityMeasure Ω)} {μ : LevyProkhorov (ProbabilityMeasure Ω)} {μnorm : ProbabilityMeasure Ω}:
+    Tendsto μs F (𝓝 μ) ↔ Tendsto (fun n => P (μs n)) F (𝓝 (P μ)) := by sorry
+  --     ∀ f : Ω →ᵇ ℝ,
+  --       Tendsto (fun i ↦ ∫ ω, f ω ∂(μs i : Measure Ω)) F (𝓝 (∫ ω, f ω ∂(μ : Measure Ω))) := by
+  -- rw [tendsto_nhds_iff_toFiniteMeasure_tendsto_nhds]
+  -- rw [FiniteMeasure.tendsto_iff_forall_integral_tendsto]
+  -- rfl
 
 lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (LevyProkhorov (ProbabilityMeasure Ω)))
     (hcomp: IsCompact (closure S)) (ε : ℝ≥0) (Cov : univ = ⋃ i, U i):
-    ∃ (k : ℕ), ∀ μ ∈ S,  P μ (⋃ (i ≤ k), U i) > 1 - ε := by
+    ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), U i) > 1 - ε := by
   by_contra! nh
   choose μ hμ hμε using nh
 
@@ -59,17 +60,12 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
   obtain ⟨μnew, hμ, sub, tub, bub⟩ := hcomp.isSeqCompact (fun n =>  subset_closure <| hμ n)
   have thing n := calc
     P μnew (⋃ (i ≤ n), U i)
-    _ ≤ liminf (fun k => P (μ (sub k)) (⋃ (i ≤ n), U i)) atTop := by
+    _ = liminf (fun k => (μ (sub k)) (⋃ (i ≤ n), U i)) atTop := by
       rw [Tendsto.liminf_eq]
-      rw [tendsto_iff_forall_integral_tendsto_prok ℕ atTop]
-      exact bub
-      --apply MeasureTheory.limsup_measure_closed_le_iff_liminf_measure_open_ge,  MeasureTheory.FiniteMeasure.limsup_measure_closed_le_of_tendsto at bub
+      --rw [ProbabilityMeasure.tendsto_iff_forall_integral_tendsto] at bub
+      sorry
       --levyProkhorov_eq_convergenceInDistribution --homeomorph_probabilityMeasure_levyProkhorov
-    _ ≤ liminf (fun k => P (μ (sub k)) (⋃ (i ≤ k), U i)) atTop := by
-      rw [Tendsto.liminf_eq, Tendsto.liminf_eq]
-      sorry
-      sorry
-      sorry
+    _ ≤ liminf (fun k => P (μ (sub k)) (⋃ (i ≤ k), U i)) atTop := by sorry
     _ ≤ 1 - ε := sorry
 
   have cdiction : Tendsto (fun n => P μnew (⋃ i ≤ n, U i)) atTop (𝓝 1) := by sorry
@@ -84,8 +80,8 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
 
 
 
--- lemma fivepoint3 {MeasurableSpace X} (MetricSpace X)  (h : IsCompact X) : (inferInstance : TopologicalSpace (LevyProkhorov (ProbabilityMeasure X))) := by
---   sorry
+lemma fivepoint3 (MetricSpace X) (h : IsCompact X) (A : ProbabilityMeasure X) (B := LevyProkhorov.equiv (ProbabilityMeasure X)) : IsCompact B := by
+  sorry
 
 
 -- Definition taken from Rémy's PR number #21955
