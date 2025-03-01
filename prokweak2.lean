@@ -4,7 +4,7 @@ import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 import Mathlib.Topology.Defs.Basic
 import Mathlib.Topology.MetricSpace.Defs
-
+--set_option maxHeartbeats 400000
 --set_option diagnostics true
 
 open Topology Metric Filter Set ENNReal NNReal ProbabilityMeasure TopologicalSpace
@@ -25,18 +25,24 @@ noncomputable section
 
 --def compactsetofmeasures := {X : Set (ProbabilityMeasure Ω) // IsCompact X}
 
-variable (S : Set (LevyProkhorov (ProbabilityMeasure Ω))) --(S : Set (ProbabilityMeasure Ω)) --
+variable (S : Set (ProbabilityMeasure Ω)) --(S : Set (ProbabilityMeasure Ω)) --
 
-abbrev P := LevyProkhorov.equiv  (ProbabilityMeasure Ω)
+abbrev P := LevyProkhorov.equiv (ProbabilityMeasure Ω)
 
 abbrev T := P⁻¹' S
 
-theorem tendsto_iff_forall_integral_tendsto_prok (γ : Type*) (F : Filter γ) (B : Set Ω)
-    {μs : γ → LevyProkhorov (ProbabilityMeasure Ω)} {μ : LevyProkhorov (ProbabilityMeasure Ω)} :
-    Tendsto (fun k => (μs k)) F (𝓝 μ) → Tendsto (fun k => (P (μs k)) B) F (𝓝 (P μ B)) := by
-    intro h
-    refine ProbabilityMeasure.tendsto_measure_of_null_frontier_of_tendsto ?goalone ?goaltwo
-    · exact h
+-- theorem tendsto_iff_forall_integral_tendsto_prok (γ : Type*) (F : Filter γ) (B : Set Ω) (O : IsOpen B)
+--     {S : Set (ProbabilityMeasure Ω)} {μs : γ → (ProbabilityMeasure Ω)} {μ : (ProbabilityMeasure Ω)} (h : IsCompact (closure S)) :
+--     Tendsto (fun k => (μs k)) F (𝓝 μ) → Tendsto (fun k =>  (μs k) B) F (𝓝 (μ B)) := by
+--     intro h
+--     refine Tendsto.apply_nhds ?h B
+--     refine tendsto_pi_nhds.mpr ?h.a
+--     intro x
+--     sorry
+
+    -- refine ProbabilityMeasure.tendsto_measure_of_null_frontier_of_tendsto ?goalone ?goaltwo
+    -- · exact h
+    -- · frontier B
 
 
 
@@ -45,21 +51,29 @@ theorem tendsto_iff_forall_integral_tendsto_prok (γ : Type*) (F : Filter γ) (B
 
 lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (LevyProkhorov (ProbabilityMeasure Ω)))
     (hcomp: IsCompact (closure S)) (ε : ℝ≥0) (Cov : univ = ⋃ i, U i):
-    ∃ (k : ℕ), ∀ μ ∈ S,  P μ (⋃ (i ≤ k), U i) > 1 - ε := by
+    ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), U i) > 1 - ε := by
   by_contra! nh
   choose μ hμ hμε using nh
 
   --exact hcomp.mem_of_is_closed (IsClosed.closure hcomp.is_closed)
   obtain ⟨μnew, hμ, sub, tub, bub⟩ := hcomp.isSeqCompact (fun n =>  subset_closure <| hμ n)
   have thing n := calc
-    P μnew (⋃ (i ≤ n), U i)
-    _ ≤ liminf (fun k => P (μ (sub k)) (⋃ (i ≤ n), U i)) atTop := by
-      rw [Tendsto.liminf_eq]
-      exact tendsto_iff_forall_integral_tendsto_prok ℕ atTop (⋃ i, ⋃ (_ : i ≤ n), U i) bub
+    μnew (⋃ (i ≤ n), U i)
+    _ ≤ liminf (fun k => μ (sub k) (⋃ (i ≤ n), U i)) atTop := by
+      have hopen : IsOpen (⋃ i, ⋃ (_ : i ≤ n), U i) := by
+        exact isOpen_biUnion fun i a => O i
+
+      --This beauty is the key lemma
+      use ProbabilityMeasure.le_liminf_measure_open_of_tendsto bub hopen
+      sorry
+
+      -- Everythin below is a mess (probably wrong)
+      --rw [Tendsto.liminf_eq]
+      --exact tendsto_iff_forall_integral_tendsto_prok ℕ atTop (⋃ i, ⋃ (_ : i ≤ n), U i) bub
       --apply tendsto_measure_iUnion_atTop
       --apply MeasureTheory.limsup_measure_closed_le_iff_liminf_measure_open_ge,  MeasureTheory.FiniteMeasure.limsup_measure_closed_le_of_tendsto at bub
       --homeomorph_probabilityMeasure_levyProkhorov
-    _ ≤ liminf (fun k => P (μ (sub k)) (⋃ (i ≤ k), U i)) atTop := by
+    _ ≤ liminf (fun k => μ (sub k) (⋃ (i ≤ k), U i)) atTop := by
       apply Filter.liminf_le_liminf
       · simp
         use n + 1
@@ -71,7 +85,7 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
           simp
           apply h.trans
           linarith
-        exact ProbabilityMeasure.apply_mono (P (μ (sub b))) hsub
+        exact ProbabilityMeasure.apply_mono  (μ (sub b)) hsub
       · simp [autoParam]
         use 0
         simp
@@ -87,7 +101,7 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
       --apply Filter.liminf_le_liminf
       sorry
 
-  have cdiction : Tendsto (fun n => P μnew (⋃ i ≤ n, U i)) atTop (𝓝 1) := by sorry
+  have cdiction : Tendsto (fun n => μnew (⋃ i ≤ n, U i)) atTop (𝓝 1) := by sorry
     --(∀ n, P μnew (⋃ (i ≤ n), U i)) ≤ liminf (fun k => P (μ (sub k)) (⋃ (i ≤ n), U i)) atTop := by exact P.liminf_le_liminf hμ
       -- have conv :
   --simp at nh --gt_iff_lt, not_exists, not_forall, Classical.not_imp, not_lt] at nh
