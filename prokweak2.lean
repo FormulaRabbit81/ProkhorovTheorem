@@ -49,6 +49,15 @@ abbrev T := P⁻¹' S
 -- lemma tendsto_in_Prok_eq_tendsto_in_weak {μ : ℕ → (ProbabilityMeasure Ω)} {μlim : ProbabilityMeasure Ω} (h : Tendsto μ atTop (𝓝 μlim)) :
 --   Tendsto (fun n => P (μ n)) atTop (𝓝 μlim) := by sorry
 
+lemma my_thing {l : Filter α} {f : α → NNReal} [IsMeasure f] [IsProbabilityMeasure f]:
+    liminf (fun x ↦ (f x : ENNReal)) l = liminf f l := by
+  apply?
+  sorry
+
+-- lemma my_thing2 {ν : ProbabilityMeasure Ω} {s : Set Ω} :
+--     @DFunLike.coe (Measure Ω) (Set Ω) (fun x => ℝ≥0∞) _ ν s = ν s := by
+--   exact Eq.symm (ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure ν s)
+
 lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (LevyProkhorov (ProbabilityMeasure Ω)))
     (hcomp: IsCompact (closure S)) (ε : ℝ≥0) (Cov : univ = ⋃ i, U i):
     ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), U i) > 1 - ε := by
@@ -56,16 +65,20 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
   choose μ hμ hμε using nh
 
   --exact hcomp.mem_of_is_closed (IsClosed.closure hcomp.is_closed)
-  obtain ⟨μnew, hμ, sub, tub, bub⟩ := hcomp.isSeqCompact (fun n =>  subset_closure <| hμ n)
+  obtain ⟨μnew, hμtwo, sub, tub, bub⟩ := hcomp.isSeqCompact (fun n =>  subset_closure <| hμ n)
   have thing n := calc
     μnew (⋃ (i ≤ n), U i)
     _ ≤ liminf (fun k => μ (sub k) (⋃ (i ≤ n), U i)) atTop := by
       have hopen : IsOpen (⋃ i, ⋃ (_ : i ≤ n), U i) := by
         exact isOpen_biUnion fun i a => O i
 
-      --This beauty is the key lemma
-      use ProbabilityMeasure.le_liminf_measure_open_of_tendsto bub hopen
-      sorry
+      --This is the key lemma
+      have := ProbabilityMeasure.le_liminf_measure_open_of_tendsto bub hopen
+      simp only [Function.comp_apply] at this
+      simp only [← ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure] at this
+      rw [my_thing] at this
+      norm_cast at this
+
 
       -- Everythin below is a mess (probably wrong)
       --rw [Tendsto.liminf_eq]
@@ -99,6 +112,7 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
       -- rw [Tendsto.liminf_eq]--, Tendsto.liminf_eq]
     _ ≤ 1 - ε := by
       --apply Filter.liminf_le_liminf
+
       sorry
 
   have cdiction : Tendsto (fun n => μnew (⋃ i ≤ n, U i)) atTop (𝓝 1) := by sorry
