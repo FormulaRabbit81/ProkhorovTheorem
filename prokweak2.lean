@@ -19,7 +19,10 @@ variable {Ω : Type*} [MeasurableSpace Ω] [PseudoMetricSpace Ω] -- consider ch
 variable {μ : ℕ → Set Ω → ℝ}
 
 
-
+-- This has been proved by Yaël and will be in Mathlib soon. PR: #22659
+lemma ofNNReal_liminf {ι : Type*} {l : Filter α} {f : α → ℝ≥0} (hf : l.IsCoboundedUnder (· ≥ ·) f) :
+    liminf f l = liminf (fun i ↦ (f i : ℝ≥0∞)) l := by
+  sorry
 
 noncomputable section
 
@@ -31,32 +34,18 @@ abbrev P := LevyProkhorov.equiv (ProbabilityMeasure Ω)
 
 abbrev T := P⁻¹' S
 
--- theorem tendsto_iff_forall_integral_tendsto_prok (γ : Type*) (F : Filter γ) (B : Set Ω) (O : IsOpen B)
---     {S : Set (ProbabilityMeasure Ω)} {μs : γ → (ProbabilityMeasure Ω)} {μ : (ProbabilityMeasure Ω)} (h : IsCompact (closure S)) :
---     Tendsto (fun k => (μs k)) F (𝓝 μ) → Tendsto (fun k =>  (μs k) B) F (𝓝 (μ B)) := by
---     intro h
---     refine Tendsto.apply_nhds ?h B
---     refine tendsto_pi_nhds.mpr ?h.a
---     intro x
---     sorry
 
-    -- refine ProbabilityMeasure.tendsto_measure_of_null_frontier_of_tendsto ?goalone ?goaltwo
-    -- · exact h
-    -- · frontier B
+-- lemma my_thing {l : Filter α} {f : α → NNReal}:-- (bounded : ∀ᶠ a in l, f a < 38):
+--     liminf (fun x ↦ (f x : ENNReal)) l = liminf f l := by
+--   refine (toReal_eq_toReal_iff' ?hx ?hy).mp ?_
+--   · simp only [ne_eq]
+--     apply LT.lt.ne_top ?hx.h
+--     · use 39
+--     · sorry
+--   exact coe_ne_top
+--   simp only [coe_toReal]
+--   sorry
 
-
-
--- lemma tendsto_in_Prok_eq_tendsto_in_weak {μ : ℕ → (ProbabilityMeasure Ω)} {μlim : ProbabilityMeasure Ω} (h : Tendsto μ atTop (𝓝 μlim)) :
---   Tendsto (fun n => P (μ n)) atTop (𝓝 μlim) := by sorry
-
-lemma my_thing {l : Filter α} {f : α → NNReal} [IsMeasure f] [IsProbabilityMeasure f]:
-    liminf (fun x ↦ (f x : ENNReal)) l = liminf f l := by
-  apply?
-  sorry
-
--- lemma my_thing2 {ν : ProbabilityMeasure Ω} {s : Set Ω} :
---     @DFunLike.coe (Measure Ω) (Set Ω) (fun x => ℝ≥0∞) _ ν s = ν s := by
---   exact Eq.symm (ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure ν s)
 
 lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (LevyProkhorov (ProbabilityMeasure Ω)))
     (hcomp: IsCompact (closure S)) (ε : ℝ≥0) (Cov : univ = ⋃ i, U i):
@@ -71,34 +60,34 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
     _ ≤ liminf (fun k => μ (sub k) (⋃ (i ≤ n), U i)) atTop := by
       have hopen : IsOpen (⋃ i, ⋃ (_ : i ≤ n), U i) := by
         exact isOpen_biUnion fun i a => O i
-
       --This is the key lemma
       have := ProbabilityMeasure.le_liminf_measure_open_of_tendsto bub hopen
       simp only [Function.comp_apply] at this
       simp only [← ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure] at this
-      rw [my_thing] at this
+      rw [←ofNNReal_liminf] at this
       norm_cast at this
-
-
-      -- Everythin below is a mess (probably wrong)
-      --rw [Tendsto.liminf_eq]
-      --exact tendsto_iff_forall_integral_tendsto_prok ℕ atTop (⋃ i, ⋃ (_ : i ≤ n), U i) bub
-      --apply tendsto_measure_iUnion_atTop
-      --apply MeasureTheory.limsup_measure_closed_le_iff_liminf_measure_open_ge,  MeasureTheory.FiniteMeasure.limsup_measure_closed_le_of_tendsto at bub
-      --homeomorph_probabilityMeasure_levyProkhorov
-    _ ≤ liminf (fun k => μ (sub k) (⋃ (i ≤ k), U i)) atTop := by
+      · use 1
+        simp
+        intro a t h
+        have tranineq : ∀ (b : ℕ), t ≤ b → (μ (sub b)) (⋃ i, ⋃ (_ : i ≤ n), U i) ≤ 1 := by
+          intro b hb
+          exact ProbabilityMeasure.apply_le_one (μ (sub b)) (⋃ i, ⋃ (_ : i ≤ n), U i)
+        have step : ∀ (b : ℕ), t ≤ b → a ≤ 1 := by
+          exact fun b a_1 =>
+            Preorder.le_trans a ((μ (sub b)) (⋃ i, ⋃ (_ : i ≤ n), U i)) 1 (h b a_1) (tranineq b a_1)
+        refine step ?_ ?_
+        use t + 1
+        norm_num
+      · exact Ω
+    _ ≤ liminf (fun k => μ (sub k) (⋃ (i ≤ sub k), U i)) atTop := by
       apply Filter.liminf_le_liminf
       · simp
         use n + 1
         intro b hypo
-        have hsub : (⋃ i, ⋃ (_ : i ≤ n), U i) ⊆ (⋃ i, ⋃ (_ : i ≤ b), U i) := by
-          refine iUnion₂_subset_iff.mpr ?_
-          intro t h
-          refine subset_biUnion_of_mem ?_
-          simp
-          apply h.trans
-          linarith
-        exact ProbabilityMeasure.apply_mono  (μ (sub b)) hsub
+        refine (μ (sub b)).apply_mono <| Set.biUnion_mono (fun i (hi : i ≤ n) ↦ hi.trans ?_) fun _ _ ↦ le_rfl
+        apply le_trans _ (le_trans hypo _)
+        norm_num
+        exact StrictMono.le_apply tub
       · simp [autoParam]
         use 0
         simp
@@ -111,9 +100,23 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
         simp_all only [ProbabilityMeasure.apply_le_one]
       -- rw [Tendsto.liminf_eq]--, Tendsto.liminf_eq]
     _ ≤ 1 - ε := by
-      --apply Filter.liminf_le_liminf
+      apply Filter.liminf_le_of_le
+      · use 0
+        simp
+      · simp only [eventually_atTop, ge_iff_le, forall_exists_index]
+        intros b c h
+        refine le_trans (h c le_rfl) (hμε _)
 
-      sorry
+
+
+
+        -- Steps: change hμε to say if k > c this is true
+        -- Then change  hμε to say if true for all k then true for subsequence of k
+        -- Then use transitivity to show c ≤ b_1 → b ≤ 1 - ε
+        -- Let c = 0  then b_1 is always bigger so we have a tautology
+
+
+
 
   have cdiction : Tendsto (fun n => μnew (⋃ i ≤ n, U i)) atTop (𝓝 1) := by sorry
     --(∀ n, P μnew (⋃ (i ≤ n), U i)) ≤ liminf (fun k => P (μ (sub k)) (⋃ (i ≤ n), U i)) atTop := by exact P.liminf_le_liminf hμ
