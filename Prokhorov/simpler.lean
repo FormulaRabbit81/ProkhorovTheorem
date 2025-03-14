@@ -6,6 +6,7 @@ import Mathlib.Topology.Defs.Basic
 import Mathlib.Topology.MetricSpace.Defs
 --set_option maxHeartbeats 400000
 --set_option diagnostics true
+set_option linter.style.longLine false
 
 open Topology Metric Filter Set ENNReal NNReal ProbabilityMeasure TopologicalSpace
 
@@ -13,19 +14,10 @@ namespace MeasureTheory
 
 open scoped Topology ENNReal NNReal BoundedContinuousFunction
 
--- This has been proved by Yaël and will be in Mathlib soon. PR: #22659
-lemma eq_of_forall_nnreal_iff {x y : ℝ≥0∞} (h : ∀ r : ℝ≥0, ↑r ≤ x ↔ ↑r ≤ y) : x = y :=
-  le_antisymm (le_of_forall_nnreal_lt fun _r hr ↦ (h _).1 hr.le)
-    (le_of_forall_nnreal_lt fun _r hr ↦ (h _).2 hr.le)
-
-lemma ofNNReal_liminf {ι : Type*} {f : Filter ι} {u : ι → ℝ≥0} (hf : f.IsCoboundedUnder (· ≥ ·) u) :
-    liminf u f = liminf (fun i ↦ (u i : ℝ≥0∞)) f := by
-  sorry
-
--- This too in #22877
-variable {Ω : Type*} [MeasurableSpace Ω] in
+-- This has been proven by Yaël in #22877
+variable {X : Type*} [MeasurableSpace X] in
 protected lemma ProbabilityMeasure.tendsto_measure_iUnion_accumulate {ι : Type*} [Preorder ι]
-    [IsCountablyGenerated (atTop : Filter ι)] {μ : ProbabilityMeasure Ω} {f : ι → Set Ω} :
+    [IsCountablyGenerated (atTop : Filter ι)] {μ : ProbabilityMeasure X} {f : ι → Set X} :
     Tendsto (fun i ↦ μ (Accumulate f i)) atTop (𝓝 (μ (⋃ i, f i))) := by
   simpa [← ennreal_coeFn_eq_coeFn_toMeasure, ENNReal.tendsto_coe]
     using tendsto_measure_iUnion_accumulate (μ := μ.toMeasure)
@@ -36,19 +28,17 @@ lemma toReal_liminf {ι : Type*} {f : Filter ι} {u : ι → ℝ≥0} :
   sorry
 
 
-variable {Ω : Type*} [MeasurableSpace Ω] [PseudoMetricSpace Ω] -- may change this to EMetric later
-[OpensMeasurableSpace Ω] [SeparableSpace Ω] --[∀ i, μ i : Measure Ω] {P : MeasurableSpace Ω}
-variable {μ : ℕ → Set Ω → ℝ}
-
+variable {X : Type*} [MeasurableSpace X] [PseudoMetricSpace X] -- may change this to EMetric later
+[OpensMeasurableSpace X] [SeparableSpace X]
 
 
 noncomputable section
 
---def compactsetofmeasures := {X : Set (ProbabilityMeasure Ω) // IsCompact X}
+--def compactsetofmeasures := {X : Set (ProbabilityMeasure X) // IsCompact X}
 
-variable (S : Set (ProbabilityMeasure Ω)) --(S : Set (ProbabilityMeasure Ω)) --
+variable (S : Set (ProbabilityMeasure X))
 
-abbrev P := LevyProkhorov.equiv (ProbabilityMeasure Ω)
+abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
 
 abbrev T := P⁻¹' S
 
@@ -62,7 +52,7 @@ theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
   exact tendsto_atTop_iSup fun i j hij ↦ by gcongr
 
 
-lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (LevyProkhorov (ProbabilityMeasure Ω)))
+lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     (hcomp: IsCompact (closure S)) (ε : ℝ) (heps : ε > 0) (Cov : ⋃ i, U i = univ):
     ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), U i) > 1 - ε := by
   by_contra! nh
@@ -76,8 +66,7 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
         exact isOpen_biUnion fun i a => O i
       --This is the key lemma
       have := ProbabilityMeasure.le_liminf_measure_open_of_tendsto bub hopen
-      simp only [Function.comp_apply] at this
-      simp only [← ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure] at this
+      simp only [Function.comp_apply, ← ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure] at this
       simp at this
       rw [toReal_liminf]
       norm_cast
@@ -141,64 +130,22 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
   have whatever := hn.trans (thing n)
   linarith
 
-
-
 -- lemma fivepoint3 {MeasurableSpace X} (MetricSpace X)  (h : IsCompact X) : (inferInstance : TopologicalSpace (LevyProkhorov (ProbabilityMeasure X))) := by
 --   sorry
 
 
 -- Definition taken from Rémy's PR number #21955
-def IsTightFamily (S : Set (Measure Ω)) : Prop :=
-  ∀ ε, 0 < ε → ∃ (K_ε : Set Ω), ∀ μ ∈ S, μ K_εᶜ < ε ∧ IsCompact K_ε
+def IsTightFamily (S : Set (Measure X)) : Prop :=
+  ∀ ε, 0 < ε → ∃ (K_ε : Set X), ∀ μ ∈ S, μ K_εᶜ < ε ∧ IsCompact K_ε
 
 
-def IsRelativelyCompact (S : Set (Measure Ω)) [PseudoMetricSpace (Measure Ω)] : Prop :=
+def IsRelativelyCompact (S : Set (Measure X)) [PseudoMetricSpace (Measure X)] : Prop :=
   IsCompact (closure S)
 
-theorem Prokhorov (G : Set (Measure Ω)) [PseudoMetricSpace (Measure Ω)]:
+theorem Prokhorov (G : Set (Measure X)) [PseudoMetricSpace (Measure X)]:
    (IsTightFamily G) ↔ (IsRelativelyCompact G) := by
    sorry
 
 end section
--- Change Omega to X
-
-
-
-
-
-
-      -- Stuff from trying to prove union of i < n tends to union of i
-      -- apply Filter.Tendsto.comp ?_ ?_
-      -- exact Filter.sInf fun a => S μnew
-      -- rw [Cov]
-      -- simp only [ProbabilityMeasure.coeFn_univ]
-
-
-      -- rw [Filter.tendsto_atTop']
-      -- rw [Cov]
-      -- simp only [ProbabilityMeasure.coeFn_univ]
-      -- intro s hs
-
-
-      --rw [Tendsto]
-
-      -- refine map_le_iff_le_comap.mpr ?one
-      -- rw [Cov]
-      -- simp only [ProbabilityMeasure.coeFn_univ]
-
-      -- have hm : Monotone (fun n => ⋃ i ≤ n, U i) := by
-      --   intro a b h
-      --   refine le_iff_subset.mpr ?_
-      --   sorry
-
-      --norm_push
-      -- refine tendsto_measure_iUnion_atTop ?_
-
-
-      --intro blob a
-      --rw [tendsto_map'_iff]
-
-
--- lemma ofReal_liminf {ι : Type*} {l : Filter α} {f : α → ℝ≥0} (hf : l.IsCoboundedUnder (· ≥ ·) f) :
---     liminf f l = liminf (fun i ↦ (f i : ℝ)) l := by
---   sorry
+end
+end MeasureTheory
