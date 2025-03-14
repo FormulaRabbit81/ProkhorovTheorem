@@ -32,21 +32,9 @@ protected lemma ProbabilityMeasure.tendsto_measure_iUnion_accumulate {ι : Type*
   simpa [← ennreal_coeFn_eq_coeFn_toMeasure, ENNReal.tendsto_coe]
     using tendsto_measure_iUnion_accumulate (μ := μ.toMeasure)
 
-
---Prove 2.
-lemma eq_of_forall_real_iff {x y : ℝ} (h : ∀ r : ℝ≥0, ↑r ≤ x ↔ ↑r ≤ y) : x = y :=
-  sorry-- le_antisymm (le_of_forall_nnreal_lt fun _r hr ↦ (h _).1 hr.le)
-  --   (le_of_forall_nnreal_lt fun _r hr ↦ (h _).2 hr.le)
-
--- Prove 1
-lemma ofNReal_liminf {u : ι → ℝ≥0} (hf : f.IsCoboundedUnder (· ≥ ·) u)   : --(hh : IsBoundedUnder (fun x1 x2 => x1 ≥ x2) f u := by isBoundedDefault) (h₁ : IsCoboundedUnder (fun x1 x2 => x1 ≥ x2) f u := by isBoundedDefault) (hg : f.IsBoundedUnder (· ≥ ·) u)
-    liminf u f = liminf (fun i ↦ (u i : ℝ)) f := by
-  refine eq_of_forall_real_iff fun r ↦ ?_
-  rw [NNReal.coe_le_coe, le_liminf_iff]--, le_liminf_iff]
+--And this in #22903:
+lemma toReal_liminf {ι : Type*} {f : Filter ι} {u : ι → ℝ≥0} : liminf (fun i ↦ (u i : ℝ)) f = liminf u f := by
   sorry
-  -- rw [NNReal.coe_le_coe, le_liminf_iff, le_liminf_iff]
-  -- simp [forall_ennreal]
-
 
 
 variable {Ω : Type*} [MeasurableSpace Ω] [PseudoMetricSpace Ω] -- consider changing this to EMetric later
@@ -63,7 +51,7 @@ variable (S : Set (ProbabilityMeasure Ω)) --(S : Set (ProbabilityMeasure Ω)) -
 
 abbrev P := LevyProkhorov.equiv (ProbabilityMeasure Ω)
 
---abbrev T := P⁻¹' S
+abbrev T := P⁻¹' S
 
 theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
     [Preorder ι] [IsCountablyGenerated (atTop : Filter ι)]
@@ -73,8 +61,6 @@ theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
   have := (atTop_neBot_iff.1 h).2
   rw [measure_iUnion_eq_iSup_accumulate]
   exact tendsto_atTop_iSup fun i j hij ↦ by gcongr
-
-
 
 
 lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (LevyProkhorov (ProbabilityMeasure Ω)))
@@ -95,7 +81,7 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
       simp only [← ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure] at this
       rw [←ofNNReal_liminf] at this
       --norm_cast at this
-      · rw [←ofNReal_liminf]
+      · rw [toReal_liminf]
         norm_cast
         norm_cast at this
         use 1
@@ -164,16 +150,7 @@ lemma claim5point2 (U : ℕ → Set Ω) (O : ∀ i, IsOpen (U i)) --(T : Set (Le
   suffices ∀ᶠ n : ℕ in atTop, False by exact this.exists.choose_spec
   filter_upwards [oop] with n hn
   have whatever := hn.trans (thing n)
-  --simp at this
-  --linarith at whatever
-  --refine sub_le_sub_left at whatever
-  -- have con : ε / 2 ≥  ε := by
-  --   refine (le_div_iff₀' ?hr).mpr ?_
-  --   norm_num
-  --   apply le_mul_of_one_le_left
-  --   apply sub_le_sub_left at whatever
-  linarith --at whatever
-
+  linarith
 
 
 
