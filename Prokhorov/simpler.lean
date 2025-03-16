@@ -29,7 +29,7 @@ lemma toReal_liminf {ι : Type*} {f : Filter ι} {u : ι → ℝ≥0} :
 
 
 variable {X : Type*} [MeasurableSpace X] [PseudoMetricSpace X] -- may change this to EMetric later
-[OpensMeasurableSpace X] [SeparableSpace X]
+[OpensMeasurableSpace X] [SeparableSpace X] [CompleteSpace X]
 
 
 noncomputable section
@@ -116,7 +116,6 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     simp at re
     exact re
 
-
   have oop : ∀ᶠ n in atTop, μnew (⋃ i, ⋃ (_ : i ≤ n), U i) ≥ 1 - ε / 2 := by
     --rw [tendsto_atTop_nhds] at cdiction
     apply Tendsto.eventually_const_le (v := 1)
@@ -130,20 +129,63 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
   have whatever := hn.trans (thing n)
   linarith
 
+-- Definition taken from Rémy's Repository but modified to use ProbabilityMeasure instead of measure. - Need to change this later
+def TightProb (S : Set (ProbabilityMeasure X)) : Prop :=
+  ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
+
+
+theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (closure S)) :
+    TightProb S := by
+  -- Introduce ε > 0 for which we need to find a compact set K with μ(K) ≥ 1 - ε for all μ ∈ S
+  intro ε εpos
+  obtain ⟨D, fD⟩ := exists_dense_seq X
+  -- For each m ≥ 1, cover X with balls of radius 1/m around points in the dense subset D
+  have hcov : ∀ m : ℝ, m ≥ 1 → ⋃ i, ball (D i) (1 / m) = univ := by
+    rw [denseRange_iff] at fD
+    intro m hm
+    ext p
+    constructor
+    · exact fun a ↦ trivial
+    specialize fD p
+    specialize fD (1 / m)
+    intro hp
+    specialize fD (by positivity)
+    exact mem_iUnion.mpr fD
+
+  have clam : ∀ (m : ℝ), ∀ μ ∈ S, m ≥ 1 → ∃ (k : ℕ), μ (⋃ i, ⋃ (_ : i ≤ k), ball (D i) (1 / m)) > 1 - (ε * 2 ^ (-m)) := by
+    intro m μ hμ hm
+    let ε' := ε.toReal * 2 ^ (-m)
+    have fiveee : ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), ball (D i) (1 / m)) > 1 - ε' := by
+      apply claim5point2 (S := S) (U := fun i => ball (D i) (1 / m)) (ε := ε') (heps := _)
+      · exact fun i ↦ isOpen_ball
+      · exact hcomp
+      · simp_all only [ge_iff_le, one_div]
+      · intro O hcomp_1
+        simp_all only [ge_iff_le, one_div, gt_iff_lt, ε']
+        by_cases h : ε = ⊤
+        · sorry
+        · sorry
+
+      have inq : ε.toReal < ε.toReal * 2 ^ (-m) := by
+
+      --specialize hcov m
+
+
+
+    have fivpoint : ∀ (m : ℝ), ∀ μ ∈ S, m ≥ 1 → ∃ k, ↑(μ (⋃ i, ⋃ (_ : i ≤ k), ball (D i) (1 / m))) > 1 - ε * 2 ^ (-m) := by
+      intro m
+      sorry
+    intro m μ hμ
+
+    --obtain ⟨k⟩ := claim5point2 _ _ _
+    --rw [→claim5point2] at hcov
+
 -- lemma fivepoint3 {MeasurableSpace X} (MetricSpace X)  (h : IsCompact X) : (inferInstance : TopologicalSpace (LevyProkhorov (ProbabilityMeasure X))) := by
 --   sorry
 
 
--- Definition taken from Rémy's PR number #21955
-def IsTightFamily (S : Set (Measure X)) : Prop :=
-  ∀ ε, 0 < ε → ∃ (K_ε : Set X), ∀ μ ∈ S, μ K_εᶜ < ε ∧ IsCompact K_ε
-
-
-def IsRelativelyCompact (S : Set (Measure X)) [PseudoMetricSpace (Measure X)] : Prop :=
-  IsCompact (closure S)
-
-theorem Prokhorov (G : Set (Measure X)) [PseudoMetricSpace (Measure X)]:
-   (IsTightFamily G) ↔ (IsRelativelyCompact G) := by
+theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X)]:
+   (TightProb G) ↔ (IsCompact (closure G)) := by
    sorry
 
 end section
