@@ -29,7 +29,7 @@ lemma toReal_liminf {ι : Type*} {f : Filter ι} {u : ι → ℝ≥0} :
 
 
 variable {X : Type*} [MeasurableSpace X] [PseudoMetricSpace X] -- may change this to EMetric later
-[OpensMeasurableSpace X] [SeparableSpace X] [CompleteSpace X]
+[OpensMeasurableSpace X] [SeparableSpace X]
 
 
 noncomputable section
@@ -62,7 +62,7 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
   have thing n := calc
     (μnew (⋃ (i ≤ n), U i) : ℝ)
     _ ≤ liminf (fun k => (μ (sub k) (⋃ (i ≤ n), U i) : ℝ)) atTop := by
-      have hopen : IsOpen (⋃ i, ⋃ (_ : i ≤ n), U i) := by
+      have hopen : IsOpen (⋃ i ≤ n, U i) := by
         exact isOpen_biUnion fun i a => O i
       --This is the key lemma
       have := ProbabilityMeasure.le_liminf_measure_open_of_tendsto bub hopen
@@ -79,7 +79,7 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
       intro a x h
       specialize h x (by simp)
       apply h.trans
-      exact ProbabilityMeasure.apply_le_one (μ (sub x)) (⋃ i, ⋃ (_ : i ≤ n), U i)
+      exact ProbabilityMeasure.apply_le_one (μ (sub x)) (⋃ i ≤ n, U i)
     _ ≤ liminf (fun k => (μ (sub k) (⋃ (i ≤ sub k), U i) : ℝ)) atTop := by
       apply Filter.liminf_le_liminf
       · simp
@@ -99,7 +99,7 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
         specialize hyp d (by simp)
         apply hyp.trans
         norm_cast
-        exact ProbabilityMeasure.apply_le_one (μ (sub d)) (⋃ i, ⋃ (_ : i ≤ sub d), U i)
+        exact ProbabilityMeasure.apply_le_one (μ (sub d)) (⋃ i ≤ sub d, U i)
     _ ≤ 1 - ε := by
       apply Filter.liminf_le_of_le
       · use 0
@@ -108,7 +108,7 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
         intros b c h
         refine le_trans (h c le_rfl) (hμε _)
   have cdiction : Tendsto (fun n => μnew (⋃ i ≤ n, U i)) atTop (𝓝 1) := by
-    have re : Tendsto (fun n => μnew (⋃ i, ⋃ (_ : i ≤ n), U i)) atTop (𝓝 (μnew (⋃ i, U i))) := by
+    have re : Tendsto (fun n => μnew (⋃ i ≤ n, U i)) atTop (𝓝 (μnew (⋃ i, U i))) := by
       -- congr
       simp_rw [←Set.accumulate_def]
       exact ProbabilityMeasure.tendsto_measure_iUnion_accumulate
@@ -116,7 +116,7 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     simp at re
     exact re
 
-  have oop : ∀ᶠ n in atTop, μnew (⋃ i, ⋃ (_ : i ≤ n), U i) ≥ 1 - ε / 2 := by
+  have oop : ∀ᶠ n in atTop, μnew (⋃ i ≤ n, U i) ≥ 1 - ε / 2 := by
     --rw [tendsto_atTop_nhds] at cdiction
     apply Tendsto.eventually_const_le (v := 1)
     norm_num
@@ -133,6 +133,8 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
 def TightProb (S : Set (ProbabilityMeasure X)) : Prop :=
   ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
 
+
+variable [CompleteSpace X]
 
 theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (closure S)) :
     TightProb S := by
@@ -152,23 +154,45 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
     specialize fD (by positivity)
     exact mem_iUnion.mpr fD
 
-  have clam : ∀ (m : ℝ), ∀ μ ∈ S, m ≥ 1 → ∃ (k : ℕ), μ (⋃ i, ⋃ (_ : i ≤ k), ball (D i) (1 / m)) > 1 - (ε * 2 ^ (-m)) := by
-    intro m μ hμ hm
+  have byclam : ∀ μ ∈ S, ∀ (m : ℤ), m ≥ 1 → ∃ (k : ℕ), μ (⋃ i ≤ k, ball (D i) (1 / m)) > 1 - (ε * 2 ^ (-m)) := by
+    intro μ hμ m hm
     let ε' := ε.toReal * 2 ^ (-m)
     have fiveee : ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), ball (D i) (1 / m)) > 1 - ε' := by
       apply claim5point2 (S := S) (U := fun i => ball (D i) (1 / m)) (ε := ε') (heps := _)
       · exact fun i ↦ isOpen_ball
       · exact hcomp
       · simp_all only [ge_iff_le, one_div]
+        sorry -- easy by dnsity of D
       · intro O hcomp_1
         simp_all only [ge_iff_le, one_div, gt_iff_lt, ε']
         by_cases h : ε = ⊤
         · sorry
         · sorry
+    sorry --have inq : ε.toReal < ε.toReal * 2 ^ (-m) := by
+  have := byclam
+  choose k hk m using this
+  constructor
+  swap
+  set bigK := ⋂ _ ≥ 1, ⋃ i ≤ l, closure (ball (D i) (1 / (_ : ℝ)))
+  let μ :=  ∈ S
 
-      have inq : ε.toReal < ε.toReal * 2 ^ (-m) := by
+
 
       --specialize hcov m
+  use bigK
+  have kcomp : IsCompact bigK := by
+    sorry
+      -- apply IsCompact_Inter
+      -- · exact fun i ↦ IsCompact_Union fun _ ↦ IsCompact_closure
+      -- · exact fun i ↦ IsClosed
+  have bigcalc μ := calc
+    μ bigKᶜ
+    _ = μ (⋃ m, ⋃ (i ≤ k), closure (ball (D i) (1 / m))ᶜ) := by sorry
+    _ ≤ ∑ m μ (⋃ (i ≤ k), closure (ball (D i) (1 / m))ᶜ) := by sorry
+    _ = ∑ m (1 - μ (⋃ (i ≤ k), closure (ball (D i) (1 / m)))) := by sorry
+    _ < ∑ m ε 2 ^ (-m) := by sorry
+    _ = ε := by sorry
+    exact bigcalc
 
 
 
@@ -176,7 +200,6 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
       intro m
       sorry
     intro m μ hμ
-
     --obtain ⟨k⟩ := claim5point2 _ _ _
     --rw [→claim5point2] at hcov
 
