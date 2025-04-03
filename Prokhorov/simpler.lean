@@ -1,7 +1,7 @@
 import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 -- import Mathlib.Probability.IdentDistrib
 -- import Mathlib.MeasureTheory.Integral.IntervalIntegral
--- import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 -- import Mathlib.Topology.Defs.Basic
 -- import Mathlib.Topology.MetricSpace.Defs
 -- import Mathlib.Tactic
@@ -9,24 +9,14 @@ import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 --set_option diagnostics true
 set_option linter.style.longLine false
 
-open Topology Metric Filter Set ENNReal NNReal ProbabilityMeasure TopologicalSpace
+open Topology Metric Filter Set ENNReal NNReal MeasureTheory.ProbabilityMeasure TopologicalSpace
 
 namespace MeasureTheory
 
 open scoped Topology ENNReal NNReal BoundedContinuousFunction
 
--- This has been proven by Yaël in #22877
-variable {X : Type*} [MeasurableSpace X] in
-protected lemma ProbabilityMeasure.tendsto_measure_iUnion_accumulate {ι : Type*} [Preorder ι]
-    [IsCountablyGenerated (atTop : Filter ι)] {μ : ProbabilityMeasure X} {f : ι → Set X} :
-    Tendsto (fun i ↦ μ (Accumulate f i)) atTop (𝓝 (μ (⋃ i, f i))) := by
-  simpa [← ennreal_coeFn_eq_coeFn_toMeasure, ENNReal.tendsto_coe]
-    using tendsto_measure_iUnion_accumulate (μ := μ.toMeasure)
-
---And this in #22903:
-lemma toReal_liminf {ι : Type*} {f : Filter ι} {u : ι → ℝ≥0} :
-  liminf (fun i ↦ (u i : ℝ)) f = liminf u f := by
-  sorry
+--   simpa [← ennreal_coeFn_eq_coeFn_toMeasure, ENNReal.tendsto_coe]
+--     using tendsto_measure_iUnion_accumulate (μ := μ.toMeasure)
 
 
 variable {X : Type*} [MeasurableSpace X] [PseudoMetricSpace X] -- may change this to EMetric later
@@ -34,8 +24,6 @@ variable {X : Type*} [MeasurableSpace X] [PseudoMetricSpace X] -- may change thi
 
 
 noncomputable section
-
---def compactsetofmeasures := {X : Set (ProbabilityMeasure X) // IsCompact X}
 
 variable (S : Set (ProbabilityMeasure X))
 
@@ -180,63 +168,133 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
     specialize fD (hφ₂ m)
     exact mem_iUnion.mpr fD
 
-  have byclam : ∀ μ ∈ S, ∀ (m : ℕ), ∃ (k : ℕ), μ (⋃ i ≤ k, ball (D i) (φ m)) > 1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
-    intro μ hμ m
-    -- I am sure there is an easier way to do this
-    let m' := m + 1
-    let ε' := (ε * 2 ^ (-m : ℤ)).toReal
-    have fiveee : ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), ball (D i) (φ m)) > 1 - ε' := by
-      apply claim5point2 (S := S) (U := fun i => ball (D i) (φ m)) (ε := ε') (heps := _)
-      · exact fun i ↦ isOpen_ball
-      · exact hcomp
-      · simp_all only [ge_iff_le, one_div]
-      · intro O hcomp_1
-        simp_all only [gt_iff_lt, ε']
-        simp [εpos]
-    obtain ⟨w, h⟩ := fiveee
-    use w
-    exact h μ hμ
+  -- have byclam : ∀ μ ∈ S, ∀ (m : ℕ), ∃ (k : ℕ), μ (⋃ i ≤ k, ball (D i) (φ m)) > 1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
+  --   intro μ hμ m
+  --   -- I am sure there is an easier way to do this
+  --   let m' := m + 1
+  --   let ε' := (ε * 2 ^ (-m : ℤ)).toReal
+  --   have fiveee : ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), ball (D i) (φ m)) > 1 - ε' := by
+  --     apply claim5point2 (S := S) (U := fun i => ball (D i) (φ m)) (ε := ε') (heps := _)
+  --     · exact fun i ↦ isOpen_ball
+  --     · exact hcomp
+  --     · simp_all only [ge_iff_le, one_div]
+  --     · intro O hcomp_1
+  --       simp_all only [gt_iff_lt, ε']
+  --       simp [εpos]
+  --   obtain ⟨w, h⟩ := fiveee
+  --   use w
+  --   exact h μ hμ
+  have byclam : ∀ (m : ℕ), ∃ (k : ℕ),∀ μ ∈ S, μ (⋃ i ≤ k, ball (D i) (φ m)) > 1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
+    intro m
+    let ε' :=  (ε : ℝ) * 2 ^ (-m : ℤ)
+    apply claim5point2 (S := S) (U := fun i => ball (D i) (φ m)) (ε := ε') (heps := _)
+    · intro i
+      exact isOpen_ball
+    · exact hcomp
+    · exact hcov m
+    · intro h _
+      positivity
+
+    -- -- I am sure there is an easier way to do this
+    -- let ε' := (ε * 2 ^ (-m : ℤ)).toReal
+    -- have fiveee : ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), ball (D i) (φ m)) > 1 - ε' := by
+    --   apply claim5point2 (S := S) (U := fun i => ball (D i) (φ m)) (ε := ε') (heps := _)
+    --   · exact fun i ↦ isOpen_ball
+    --   · exact hcomp
+    --   · simp_all only [ge_iff_le, one_div]
+    --   · intro O hcomp_1
+    --     simp_all only [gt_iff_lt, ε']
+    --     simp [εpos]
+    -- obtain ⟨w, h⟩ := fiveee
+    -- use w
+    -- exact h μ hμ
+
+
 
   choose! km hbound using id byclam
   simp_all only [zpow_neg, zpow_natCast]
-  let bigK μ := ⋂ m, ⋃ (i ≤ km μ m), closure (ball (D i) (φ m))
+  let bigK := ⋂ m, ⋃ (i ≤ km m), closure (ball (D i) (φ m))
   have bigcalc (μ : ProbabilityMeasure X) (hs : μ ∈ S) := calc
-    μ (bigK μ)ᶜ
-    _ = μ (⋃ m,(⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))ᶜ) := by
+    μ (bigK)ᶜ
+    _ = μ (⋃ m,(⋃ (i ≤ km m), closure (ball (D i) (φ m)))ᶜ) := by
       simp only [bigK]
-      simp
-    _ ≤ ∑' m, μ ((⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))ᶜ) := by
+      simp only [compl_iInter, compl_iUnion, bigK]
+    _ ≤ ∑' m, μ ((⋃ (i ≤ km m), closure (ball (D i) (φ m)))ᶜ) := by
       simp
       apply nnreal_tsum_thing
+      rw [← @tsum_coe_ne_top_iff_summable]
+      refine lt_top_iff_ne_top.mp ?_
+      refine lt_iff_exists_real_btwn.mpr ?_
+      use ε
+      refine ⟨ ?_, ?_, ?_⟩
+      · exact zero_le_coe
+      · simp
 
-      rw [@summable_iff_not_tendsto_nat_atTop]
-
-      -- apply summable_geometric_of_norm_lt_one
-      -- refine not_tendsto_iff_exists_frequently_nmem.mpr ?_
-      have eq : ∑' m, μ ((⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))) := by
-        have compl : ∑' m, μ ((⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))ᶜ) = ∑' m, (μ univ - μ (⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))) := by
-          refine tsum_eq_tsum_of_hasSum_iff_hasSum ?_
+        have eq : ∑' (b : ℕ), μ.toMeasure (⋂ i, ⋂ (_ : i ≤ km b), (closure (ball (D i) (φ b)))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km m), closure (ball (D i) (φ m)))) := by--∑' m, μ.toMeasure ((⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))ᶜ)
+          have compl : ∑' m, μ ((⋃ (i ≤ km m), closure (ball (D i) (φ m)))ᶜ) = ∑' m, (μ univ - μ (⋃ (i ≤ km m), closure (ball (D i) (φ m)))) := by
+            refine tsum_eq_tsum_of_hasSum_iff_hasSum ?_
           -- rw [measure_compl (s := (⋃ i, ⋃ (_ : i ≤ km μ _), closure (ball (D i) (φ _)))) (μ := μ)]
+            sorry
           sorry
-        sorry
-      sorry
-
-      --convert MeasureTheory.measure_iUnion_le _ (ι := ℕ) (α := X) (μ := μ.toMeasure)
-
-    _ = ∑' m, (1 - μ (⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))) := by sorry
+        have lt_geomser : ∑' m, (1 - μ (⋃ (i ≤ km m), closure (ball (D i) (φ m)))) < (∑' (m : ℕ), ε * 2 ^ (-m : ℤ) : NNReal) := by sorry
+        have geom_ser : (∑' (m : ℕ), ε * 2 ^ (-m : ℤ) : NNReal) = ε := by sorry
+        rw [eq]
+        gcongr
+        rw [← geom_ser]
+        exact lt_geomser
+      · simp only [ofReal_coe_nnreal, coe_lt_top, bigK]
+    _ = ∑' m, (1 - μ (⋃ (i ≤ km m), closure (ball (D i) (φ m)))) := by sorry
     _ < (∑' (m : ℕ), ε * 2 ^ (-m : ℤ) : NNReal) := by sorry
     _ = ε := by
       simp
       rw [NNReal.tsum_mul_left]
       nth_rw 2 [←mul_one (a :=ε)]
       congr
-      have frac : ∑' (x : ℕ), 2 ^ (-(x : ℝ) + -1) = ∑' (x : ℕ), (1 / 2) ^ (x + 1) := by
-          rw [HPow]
-          sorry
-        sorry
-        sorry
-        -- apply tsum_geometric_of_lt_one
-  sorry
+      sorry
+
+      -- have frac : ∑' (x : ℕ), 2 ^ (-(x : ℝ) + -1) = ∑' (x : ℕ), (1 / 2) ^ (x + 1) := by
+      --     rw [HPow]
+  by_cases hempty : S = ∅
+  · use ∅
+    constructor
+    · exact isCompact_empty
+    · intro μ hμ
+      subst hempty
+      simp_all only [isClosed_empty, IsClosed.closure_eq, finite_empty, Finite.isCompact, mem_empty_iff_false,
+        not_isEmpty_of_nonempty, iUnion_of_empty, gt_iff_lt, IsEmpty.exists_iff, implies_true, IsEmpty.forall_iff,
+        iInter_of_empty, compl_univ, bigK]
+  use bigK
+  constructor
+  · refine isCompact_of_totallyBounded_isClosed ?_ ?_
+    · sorry
+    · simp [bigK]
+      refine isClosed_iInter ?_
+      intro n
+      refine Finite.isClosed_biUnion ?_ ?_
+      · sorry
+      intro i hi
+      exact isClosed_closure
+  exact fun μ a ↦ le_of_lt (bigcalc μ a)
+
+      -- apply summable_geometric_of_norm_lt_one
+      -- refine not_tendsto_iff_exists_frequently_nmem.mpr ?_
+
+      --convert MeasureTheory.measure_iUnion_le _ (ι := ℕ) (α := X) (μ := μ.toMeasure)
+
+  --   _ = ∑' m, (1 - μ (⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))) := by sorry
+  --   _ < (∑' (m : ℕ), ε * 2 ^ (-m : ℤ) : NNReal) := by sorry
+  --   _ = ε := by
+  --     simp
+  --     rw [NNReal.tsum_mul_left]
+  --     nth_rw 2 [←mul_one (a :=ε)]
+  --     congr
+  --     have frac : ∑' (x : ℕ), 2 ^ (-(x : ℝ) + -1) = ∑' (x : ℕ), (1 / 2) ^ (x + 1) := by
+  --         rw [HPow]
+  --         sorry
+  --       sorry
+  --       sorry
+  --       -- apply tsum_geometric_of_lt_one
+  -- sorry
 
 
 -- lemma fivepoint3 {MeasurableSpace X} (MetricSpace X)  (h : IsCompact X) : (inferInstance : TopologicalSpace (LevyProkhorov (ProbabilityMeasure X))) := by
