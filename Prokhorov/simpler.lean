@@ -1,10 +1,4 @@
 import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
--- import Mathlib.Probability.IdentDistrib
--- import Mathlib.MeasureTheory.Integral.IntervalIntegral
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
--- import Mathlib.Topology.Defs.Basic
--- import Mathlib.Topology.MetricSpace.Defs
--- import Mathlib.Tactic
 --set_option maxHeartbeats 400000
 --set_option diagnostics true
 set_option linter.style.longLine false
@@ -127,6 +121,12 @@ omit [OpensMeasurableSpace X] [SeparableSpace X] in lemma tightProb_iff_nnreal {
   simp [TightProb, ENNReal.forall_ennreal, ←ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure]
   exact fun _ ↦ ⟨∅, isCompact_empty⟩
 
+lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ x)⁻¹ = 2 := by
+  have frac : ∑' (x : ℕ), ((2 ^ x) : ℝ)⁻¹ = ∑' (x : ℕ), (1 / 2) ^ x := by
+    congr
+    simp
+  rw [frac]
+  exact tsum_geometric_two
 
 
 variable [CompleteSpace X]
@@ -170,7 +170,7 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
 
   -- have byclam : ∀ μ ∈ S, ∀ (m : ℕ), ∃ (k : ℕ), μ (⋃ i ≤ k, ball (D i) (φ m)) > 1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
   --   intro μ hμ m
-  --   -- I am sure there is an easier way to do this
+  --   -- I am sure there is an easier way to do this - I found it!
   --   let m' := m + 1
   --   let ε' := (ε * 2 ^ (-m : ℤ)).toReal
   --   have fiveee : ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), ball (D i) (φ m)) > 1 - ε' := by
@@ -194,22 +194,6 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
     · exact hcov m
     · intro h _
       positivity
-
-    -- -- I am sure there is an easier way to do this
-    -- let ε' := (ε * 2 ^ (-m : ℤ)).toReal
-    -- have fiveee : ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), ball (D i) (φ m)) > 1 - ε' := by
-    --   apply claim5point2 (S := S) (U := fun i => ball (D i) (φ m)) (ε := ε') (heps := _)
-    --   · exact fun i ↦ isOpen_ball
-    --   · exact hcomp
-    --   · simp_all only [ge_iff_le, one_div]
-    --   · intro O hcomp_1
-    --     simp_all only [gt_iff_lt, ε']
-    --     simp [εpos]
-    -- obtain ⟨w, h⟩ := fiveee
-    -- use w
-    -- exact h μ hμ
-
-
 
   choose! km hbound using id byclam
   simp_all only [zpow_neg, zpow_natCast]
@@ -252,8 +236,6 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
       congr
       sorry
 
-      -- have frac : ∑' (x : ℕ), 2 ^ (-(x : ℝ) + -1) = ∑' (x : ℕ), (1 / 2) ^ (x + 1) := by
-      --     rw [HPow]
   by_cases hempty : S = ∅
   · use ∅
     constructor
@@ -263,38 +245,27 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
       simp_all only [isClosed_empty, IsClosed.closure_eq, finite_empty, Finite.isCompact, mem_empty_iff_false,
         not_isEmpty_of_nonempty, iUnion_of_empty, gt_iff_lt, IsEmpty.exists_iff, implies_true, IsEmpty.forall_iff,
         iInter_of_empty, compl_univ, bigK]
+  -- rw [← @not_nonempty_iff_eq_empty', Mathlib.Tactic.PushNeg.not_not_eq] at hempty
+  -- obtain ⟨s⟩ := hempty
   use bigK
   constructor
   · refine isCompact_of_totallyBounded_isClosed ?_ ?_
-    · sorry
+    · refine EMetric.totallyBounded_iff.mpr ?_
+      intro δ δpos
+      use fD Finset.Iic (km (1 /δ).ceil)
+      sorry
     · simp [bigK]
       refine isClosed_iInter ?_
       intro n
       refine Finite.isClosed_biUnion ?_ ?_
-      · sorry
+      · refine Finite.ofFinset ?_ fun x ↦ ?_
+        · exact (Finset.Iic (km n))
+        · simp
+          exact Eq.to_iff rfl
       intro i hi
       exact isClosed_closure
   exact fun μ a ↦ le_of_lt (bigcalc μ a)
 
-      -- apply summable_geometric_of_norm_lt_one
-      -- refine not_tendsto_iff_exists_frequently_nmem.mpr ?_
-
-      --convert MeasureTheory.measure_iUnion_le _ (ι := ℕ) (α := X) (μ := μ.toMeasure)
-
-  --   _ = ∑' m, (1 - μ (⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))) := by sorry
-  --   _ < (∑' (m : ℕ), ε * 2 ^ (-m : ℤ) : NNReal) := by sorry
-  --   _ = ε := by
-  --     simp
-  --     rw [NNReal.tsum_mul_left]
-  --     nth_rw 2 [←mul_one (a :=ε)]
-  --     congr
-  --     have frac : ∑' (x : ℕ), 2 ^ (-(x : ℝ) + -1) = ∑' (x : ℕ), (1 / 2) ^ (x + 1) := by
-  --         rw [HPow]
-  --         sorry
-  --       sorry
-  --       sorry
-  --       -- apply tsum_geometric_of_lt_one
-  -- sorry
 
 
 -- lemma fivepoint3 {MeasurableSpace X} (MetricSpace X)  (h : IsCompact X) : (inferInstance : TopologicalSpace (LevyProkhorov (ProbabilityMeasure X))) := by
@@ -303,7 +274,10 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
 
 theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X)]:
    (TightProb G) ↔ (IsCompact (closure G)) := by
-   sorry
+  constructor
+  · sorry
+  · sorry
+
 
 end section
 end
