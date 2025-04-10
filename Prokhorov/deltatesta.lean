@@ -156,6 +156,17 @@ lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ = 1 := by
 
 variable [CompleteSpace X]
 
+lemma geomsery (ε : ℝ≥0) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) = ε := by
+  rw [NNReal.tsum_mul_left]
+  nth_rw 2 [←mul_one (a :=ε)]
+  congr
+  have form : ∑' (x : ℕ), 2 ^ (-((x:ℤ) + 1)) = ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ := by
+    congr
+  refine NNReal.coe_eq_one.mp ?_
+  push_cast
+  rw [form]
+  exact geom_series
+
 theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     TightProb S := by
   rw [tightProb_iff_nnreal]
@@ -243,7 +254,8 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
             sorry
           sorry
         have lt_geomser : ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (φ (m+1))))) < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by sorry
-        have geom_ser : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) = ε := by sorry
+        have geom_ser : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) = ε := by
+          exact geomsery ε
         rw [eq]
         gcongr
         rw [← geom_ser]
@@ -251,17 +263,7 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       · simp only [ofReal_coe_nnreal, coe_lt_top, bigK]
     _ = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (φ (m+1))))) := by sorry
     _ < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by sorry
-    _ = ε := by
-      rw [NNReal.tsum_mul_left]
-      nth_rw 2 [←mul_one (a :=ε)]
-      congr
-      have form : ∑' (x : ℕ), 2 ^ (-((x:ℤ) + 1)) = ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ := by
-        congr
-      refine NNReal.coe_eq_one.mp ?_
-      push_cast
-      rw [form]
-      exact geom_series
-
+    _ = ε := by exact geomsery ε
   by_cases hempty : S = ∅
   · use ∅
     constructor
@@ -283,18 +285,23 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       apply nonempty_iff_ne_empty'.mpr at hempty
       --specialize hempty Classical.choice
       -- t should be image under D of the set of numbers less than km of 1/δ.ceil
-      use Set.image D (Finset.Icc 0 (km (Nat.ceil (1 /δ.toReal))))
+      use Set.image D (Finset.Icc 0 ((km (φ.invFun δ.toReal+2))))
       constructor
       · simp
-        exact toFinite (D '' Icc 0 (km ⌈δ.toReal⁻¹⌉₊))
+        exact toFinite (D '' Icc 0 ((km (Function.invFun φ δ.toReal+2))))
       · simp [bigK]
         have interthing : ∀ t, ⋂ m, ⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (φ (m + 1))) ⊆ ⋃ i, ⋃ (_ : i ≤ km (t + 1)), closure (ball (D i) (φ (t + 1))) := by
           exact fun t ↦ iInter_subset_of_subset t fun ⦃a⦄ a ↦ a
-        specialize interthing (⌈δ.toReal⁻¹⌉₊ - 1)
+        specialize interthing (φ.invFun δ.toReal + 1)
         apply interthing.trans
-        gcongr with i
-        simp
-        intro hkm
+        rw [Nat.add_assoc]
+        gcongr with i hi
+        simp_all
+        intro x hx
+        rw [@EMetric.mem_ball']
+        rw [@EMetric.mem_closure_iff] at hx
+        specialize hx δ
+        sorry
 
 
 

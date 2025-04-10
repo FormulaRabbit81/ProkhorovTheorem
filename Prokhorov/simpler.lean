@@ -13,9 +13,16 @@ open scoped Topology ENNReal NNReal BoundedContinuousFunction
 --     using tendsto_measure_iUnion_accumulate (μ := μ.toMeasure)
 
 
-variable {X : Type*} [MeasurableSpace X] [PseudoMetricSpace X] -- may change this to EMetric later
-[OpensMeasurableSpace X] [SeparableSpace X]
+variable {X : Type*} [MeasurableSpace X]
 
+lemma nnreal_tsum_ge_onion {μ : ProbabilityMeasure X} (f : ℕ → Set X)
+  (hf : Summable fun n ↦ μ (f n)) :
+    μ (⋃ n, f n) ≤ ∑' n, μ (f n) := by
+  rw [← ENNReal.coe_le_coe, ENNReal.coe_tsum hf]
+  simpa using measure_iUnion_le (μ := μ.toMeasure) f
+
+variable [PseudoMetricSpace X] -- may change this to EMetric later
+[OpensMeasurableSpace X] [SeparableSpace X]
 
 noncomputable section
 
@@ -100,7 +107,6 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     exact re
 
   have oop : ∀ᶠ n in atTop, μnew (⋃ i ≤ n, U i) ≥ 1 - ε / 2 := by
-    --rw [tendsto_atTop_nhds] at cdiction
     apply Tendsto.eventually_const_le (v := 1)
     norm_num
     positivity
@@ -129,28 +135,26 @@ lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ x)⁻¹ = 2 := by
   exact tsum_geometric_two
 
 
+
 variable [CompleteSpace X]
 
-lemma nnreal_tsum_thing {μ : ProbabilityMeasure X} (f : ℕ → Set X) (hf : Summable fun n ↦ μ (f n)) :
-    μ (⋃ n, f n) ≤ ∑' n, μ (f n) := by
-
-
-  --rw [←iUnion_disjointed]
-
-  --rw [←ProbabilityMeasure.toMeasure,←Measure.toOuterMeasure_apply]
-  --refine measure_iUnion_le (μ := (μ.toMeasure).toOuterMeasure) (s := f) (ι := ℕ) ?_
-  --apply disjoint_disjointed
-  --apply measure_iUnion
-
-
-  refine NNReal.coe_le_coe.mp ?_
-  refine (Real.le_toNNReal_iff_coe_le ?_).mp ?_
-  · exact zero_le_coe
-  · sorry
-
-theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (closure S)) :
+theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     TightProb S := by
   rw [tightProb_iff_nnreal]
+  by_cases hempty : ¬Nonempty X
+  · simp at hempty
+    intro ε εpos
+    use ∅
+    constructor
+    · exact isCompact_empty
+    intro μ hμ
+    rw [← @univ_eq_empty_iff] at hempty
+    rw [← hempty]
+    simp_all
+    rw [← ENNReal.coe_le_coe]
+    simp
+  simp at hempty
+
   -- Introduce ε > 0 for which we need to find a compact set K with μ(K) ≥ 1 - ε for all μ ∈ S
   intro ε εpos
   obtain ⟨D, fD⟩ := exists_dense_seq X
@@ -205,7 +209,7 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
       simp only [compl_iInter, compl_iUnion, bigK]
     _ ≤ ∑' m, μ ((⋃ (i ≤ km m), closure (ball (D i) (φ m)))ᶜ) := by
       simp
-      apply nnreal_tsum_thing
+      apply nnreal_tsum_ge_onion
       rw [← @tsum_coe_ne_top_iff_summable]
       refine lt_top_iff_ne_top.mp ?_
       refine lt_iff_exists_real_btwn.mpr ?_
@@ -214,7 +218,7 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
       · exact zero_le_coe
       · simp
 
-        have eq : ∑' (b : ℕ), μ.toMeasure (⋂ i, ⋂ (_ : i ≤ km b), (closure (ball (D i) (φ b)))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km m), closure (ball (D i) (φ m)))) := by--∑' m, μ.toMeasure ((⋃ (i ≤ km μ m), closure (ball (D i) (φ m)))ᶜ)
+        have eq : ∑' (b : ℕ), μ.toMeasure (⋂ i, ⋂ (_ : i ≤ km b), (closure (ball (D i) (φ b)))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km m), closure (ball (D i) (φ m)))) := by
           have compl : ∑' m, μ ((⋃ (i ≤ km m), closure (ball (D i) (φ m)))ᶜ) = ∑' m, (μ univ - μ (⋃ (i ≤ km m), closure (ball (D i) (φ m)))) := by
             refine tsum_eq_tsum_of_hasSum_iff_hasSum ?_
           -- rw [measure_compl (s := (⋃ i, ⋃ (_ : i ≤ km μ _), closure (ball (D i) (φ _)))) (μ := μ)]
@@ -234,6 +238,7 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
       rw [NNReal.tsum_mul_left]
       nth_rw 2 [←mul_one (a :=ε)]
       congr
+      --This is false it = 2 not 1 because m starts at 0 not 1
       sorry
 
   by_cases hempty : S = ∅
@@ -245,15 +250,22 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
       simp_all only [isClosed_empty, IsClosed.closure_eq, finite_empty, Finite.isCompact, mem_empty_iff_false,
         not_isEmpty_of_nonempty, iUnion_of_empty, gt_iff_lt, IsEmpty.exists_iff, implies_true, IsEmpty.forall_iff,
         iInter_of_empty, compl_univ, bigK]
-  -- rw [← @not_nonempty_iff_eq_empty', Mathlib.Tactic.PushNeg.not_not_eq] at hempty
   -- obtain ⟨s⟩ := hempty
   use bigK
   constructor
   · refine isCompact_of_totallyBounded_isClosed ?_ ?_
     · refine EMetric.totallyBounded_iff.mpr ?_
       intro δ δpos
-      use fD Finset.Iic (km (1 /δ).ceil)
-      sorry
+
+      apply nonempty_iff_ne_empty'.mpr at hempty
+      --specialize hempty Classical.choice
+      -- t should be image under D of the set of numbers less than km of 1/δ.ceil
+      use Set.image D (Finset.Icc 0 (km (Nat.ceil (1 /δ.toReal))))
+      constructor
+      · simp
+        exact toFinite (D '' Icc 0 (km ⌈δ.toReal⁻¹⌉₊))
+      · simp [bigK]
+        --refine iInter_subset LE.le (⋂ m, ⋃ i, ⋃ (_ : i ≤ km m), closure (ball (D i) (φ m))) ?_
     · simp [bigK]
       refine isClosed_iInter ?_
       intro n
@@ -266,17 +278,19 @@ theorem IsTightFamily_of_isRelativelyCompact [Nonempty X] (hcomp : IsCompact (cl
       exact isClosed_closure
   exact fun μ a ↦ le_of_lt (bigcalc μ a)
 
-
-
+-- lemma wat (h : ¬S = ∅): Nonempty S := by
+--   exact nonempty_iff_ne_empty'.mpr h
+#check Int.ceil
 -- lemma fivepoint3 {MeasurableSpace X} (MetricSpace X)  (h : IsCompact X) : (inferInstance : TopologicalSpace (LevyProkhorov (ProbabilityMeasure X))) := by
 --   sorry
-
-
+-- Example: Ceiling of 3.7 is 4
+example : Int.ceil (3.7 : ℝ) = 4 := by
+  norm_num [Int.ceil_eq_iff]
 theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X)]:
    (TightProb G) ↔ (IsCompact (closure G)) := by
   constructor
   · sorry
-  · sorry
+  · exact fun a ↦ IsTightFamily_of_isRelativelyCompact G a
 
 
 end section

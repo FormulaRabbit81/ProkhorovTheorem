@@ -22,7 +22,7 @@ weak.linter.style.multiGoal = true
 weak.linter.style.setOption = true
 
 [moreServerOptions]
-linter.unusedTactic = false
+# linter.unusedTactic = false
 # linter.docPrime = false
 # linter.hashCommand = true
 # linter.oldObtain = true
