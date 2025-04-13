@@ -22,15 +22,6 @@ lemma nnreal_tsum_ge_onion {μ : ProbabilityMeasure X} (f : ℕ → Set X)
   simpa using measure_iUnion_le (μ := μ.toMeasure) f
 
 variable [PseudoMetricSpace X] -- may change this to EMetric later
-[OpensMeasurableSpace X] [SeparableSpace X]
-
-noncomputable section
-
-variable (S : Set (ProbabilityMeasure X))
-
-abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
-
-abbrev T := P⁻¹' S
 
 theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
     [Preorder ι] [IsCountablyGenerated (atTop : Filter ι)]
@@ -41,6 +32,46 @@ theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
   rw [measure_iUnion_eq_iSup_accumulate]
   exact tendsto_atTop_iSup fun i j hij ↦ by gcongr
 
+-- Definition taken from Rémy's Repository but modified to use ProbabilityMeasure instead of measure. - Need to change this later
+def TightProb (S : Set (ProbabilityMeasure X)) : Prop :=
+  ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
+
+lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
+    TightProb S ↔ ∀ ε : ℝ≥0, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε := by
+  simp [TightProb, ENNReal.forall_ennreal, ←ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure]
+  exact fun _ ↦ ⟨∅, isCompact_empty⟩
+
+variable [OpensMeasurableSpace X]
+
+lemma meas_compl_thang (μ : ProbabilityMeasure X) (km : ℕ → ℕ) (m:ℕ) (D : ℕ → X) :
+  μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1)))) +
+  μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ = 1 := by
+    refine ENNReal.coe_eq_one.mp ?_
+    push_cast
+    have liyg : ↑(μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / ((m:ℝ) + 1))))ᶜ) = μ.toMeasure ((⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / ((m:ℝ) + 1)))))ᶜ := by
+      simp
+    have liyg2 : ↑(μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / ((m:ℝ) + 1))))) = μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1)))) := by
+      simp
+    rw [liyg]
+    rw [liyg2]
+    refine prob_add_prob_compl ?_
+    refine Finite.measurableSet_biUnion ?_ ?_
+    · refine finite_iff_bddAbove.mpr ?_
+      refine bddAbove_def.mpr ?_
+      use km (m + 1)
+      intro y hy
+      exact hy
+    · intro b hb
+      exact measurableSet_closure
+
+variable [SeparableSpace X]
+noncomputable section
+
+variable (S : Set (ProbabilityMeasure X))
+
+abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
+
+abbrev T := P⁻¹' S
 
 lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     (hcomp: IsCompact (closure S)) (ε : ℝ) (heps : ε > 0) (Cov : ⋃ i, U i = univ):
@@ -118,14 +149,7 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
   have whatever := hn.trans (thing n)
   linarith
 
--- Definition taken from Rémy's Repository but modified to use ProbabilityMeasure instead of measure. - Need to change this later
-def TightProb (S : Set (ProbabilityMeasure X)) : Prop :=
-  ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
 
-omit [OpensMeasurableSpace X] [SeparableSpace X] in lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
-    TightProb S ↔ ∀ ε : ℝ≥0, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε := by
-  simp [TightProb, ENNReal.forall_ennreal, ←ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure]
-  exact fun _ ↦ ⟨∅, isCompact_empty⟩
 
 lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ = 1 := by
   have frac : ∑' (x : ℕ), ((2 ^ (x+1)) : ℝ)⁻¹ = ∑' (x : ℕ), (1 / 2) ^ (x+1) := by
@@ -166,7 +190,6 @@ lemma geomsery (ε : ℝ≥0) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNRea
   push_cast
   rw [form]
   exact geom_series
-
 
 theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     TightProb S := by
@@ -251,11 +274,20 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       · simp
 
         have eq : ∑' (b : ℕ), μ.toMeasure (⋂ i, ⋂ (_ : i ≤ km (b+1)), (closure (ball (D i) (b+1)⁻¹))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
-          have compl : ∑' m, μ ((⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) = ∑' m, (μ univ - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
-            refine tsum_eq_tsum_of_hasSum_iff_hasSum ?_
-          -- rw [measure_compl (s := (⋃ i, ⋃ (_ : i ≤ km μ _), closure (ball (D i) (φ _)))) (μ := μ)]
+          have compl : ∑' m, μ ((⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
+            congr
+            ext m
+            congr
+            refine Eq.symm (tsub_eq_of_eq_add ?_)
+            apply Eq.symm
+            rw [add_comm]
+            exact meas_compl_thang μ km m D
+          rw [←compl]
+          have push_coerce : ↑(∑' (m : ℕ), μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ) = ∑' (m : ℕ), μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ := by
             sorry
-          sorry
+          rw [push_coerce]
+          congr
+          simp
         have lt_geomser : ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by sorry
         have geom_ser : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) = ε := by
           exact geomsery ε
@@ -265,7 +297,9 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
         exact lt_geomser
       · simp only [ofReal_coe_nnreal, coe_lt_top, bigK]
     _ = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by sorry
-    _ < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by sorry
+    _ < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by
+      
+      sorry
     _ = ε := by exact geomsery ε
   by_cases hsempty : S = ∅
   · use ∅

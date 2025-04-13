@@ -22,15 +22,6 @@ lemma nnreal_tsum_ge_onion {μ : ProbabilityMeasure X} (f : ℕ → Set X)
   simpa using measure_iUnion_le (μ := μ.toMeasure) f
 
 variable [PseudoMetricSpace X] -- may change this to EMetric later
-[OpensMeasurableSpace X] [SeparableSpace X]
-
-noncomputable section
-
-variable (S : Set (ProbabilityMeasure X))
-
-abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
-
-abbrev T := P⁻¹' S
 
 theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
     [Preorder ι] [IsCountablyGenerated (atTop : Filter ι)]
@@ -40,6 +31,26 @@ theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
   have := (atTop_neBot_iff.1 h).2
   rw [measure_iUnion_eq_iSup_accumulate]
   exact tendsto_atTop_iSup fun i j hij ↦ by gcongr
+
+-- Definition taken from Rémy's Repository but modified to use ProbabilityMeasure instead of measure. - Need to change this later
+def TightProb (S : Set (ProbabilityMeasure X)) : Prop :=
+  ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
+
+lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
+    TightProb S ↔ ∀ ε : ℝ≥0, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε := by
+  simp [TightProb, ENNReal.forall_ennreal, ←ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure]
+  exact fun _ ↦ ⟨∅, isCompact_empty⟩
+
+variable [OpensMeasurableSpace X] [SeparableSpace X]
+
+noncomputable section
+
+variable (S : Set (ProbabilityMeasure X))
+
+abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
+
+abbrev T := P⁻¹' S
+
 
 
 lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
@@ -118,14 +129,9 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
   have whatever := hn.trans (thing n)
   linarith
 
--- Definition taken from Rémy's Repository but modified to use ProbabilityMeasure instead of measure. - Need to change this later
-def TightProb (S : Set (ProbabilityMeasure X)) : Prop :=
-  ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
 
-omit [OpensMeasurableSpace X] [SeparableSpace X] in lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
-    TightProb S ↔ ∀ ε : ℝ≥0, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε := by
-  simp [TightProb, ENNReal.forall_ennreal, ←ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure]
-  exact fun _ ↦ ⟨∅, isCompact_empty⟩
+
+
 
 lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ = 1 := by
   have frac : ∑' (x : ℕ), ((2 ^ (x+1)) : ℝ)⁻¹ = ∑' (x : ℕ), (1 / 2) ^ (x+1) := by
@@ -149,10 +155,6 @@ lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ = 1 := by
     simp_all only [one_div, inv_pow]
   rw [sdfdhf]
   exact tsum_geometric_two
-
-    --have eq : ∑' (x : ℕ), (1 / 2) ^ x = 1 / (1 - 1 / 2) := by
-#check tsum_geometric_two
-
 
 variable [CompleteSpace X]
 
