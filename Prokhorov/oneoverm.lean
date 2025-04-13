@@ -314,15 +314,63 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
         simp
         rw [summable_mul_left_iff]
         field_simp
-        · have ugh : (Summable fun m ↦ 1 / 2 ^ m) ↔ (Summable fun m ↦ (1 / 2) ^ m) := by
-            sorry
-          --rw [ugh]
-          --exact summable_geometric_two
-          sorry
+        · have ugh : (Summable fun m ↦ ((1 / 2 ^ m) : ℝ≥0)) ↔ (Summable fun m ↦ ((1:ℝ) / 2) ^ m) := by
+            simp
+            exact summable_mk fun n ↦ Nonneg.inv._proof_1 (2 ^ n)
+          rw [ugh]
+          exact summable_geometric_two
         · simp
         · exact Ne.symm (ne_of_lt εpos)
-      · sorry --Goal: (fun m ↦ 1 - μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))) < fun m ↦ ε * 2 ^ (-(↑m + 1))
-      --refine ENNReal.tsum_lt_tsum  (α := ℕ) (f:= fun m ↦ ((1:NNReal) - μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1)))))) (g := fun m ↦ (ε : ENNReal) * 2 ^ (-((m:ℤ) + 1))) ?_ ?_ ?_
+      · rw [Pi.lt_def]
+        constructor
+        · intro m
+          specialize hbound (m+1) μ hs
+          refine tsub_le_iff_tsub_le.mp ?_
+          apply le_of_lt at hbound
+          simp; simp at hbound
+          refine one_le_coe.mp ?_
+          apply le_trans hbound
+          push_cast
+          refine add_le_add ?_ ?_
+          · gcongr
+            refine apply_mono μ ?_
+            refine iUnion₂_mono ?_
+            intro i hi
+            rw [@subset_def]
+            intro x hx
+            rw [@mem_ball'] at hx
+            rw [@EMetric.mem_closure_iff_infEdist_zero]
+            refine EMetric.infEdist_zero_of_mem ?_
+            rw [@mem_ball']
+            apply hx.trans
+            field_simp
+            refine (one_div_lt_one_div (by positivity) (by positivity)).mpr (by simp)
+          · congr!
+            rw [← @Int.neg_add, @zpow_neg]
+            congr!
+            norm_cast
+            simp
+            exact Nat.add_comm m 1
+        · use 0
+          specialize hbound 1 μ hs
+          simp; simp at hbound
+          refine NNReal.coe_lt_coe.mp ?_
+          simp
+          rw [@sub_lt_comm]
+          apply hbound.trans_le
+          norm_cast
+          simp
+          refine apply_mono μ ?_
+          refine iUnion₂_mono ?_
+          intro i hi
+          rw [@subset_def]
+          intro x hx
+          rw [@mem_ball'] at hx
+          rw [@EMetric.mem_closure_iff_infEdist_zero]
+          refine EMetric.infEdist_zero_of_mem ?_
+          rw [@mem_ball']
+          apply hx.trans
+          linarith
     _ = ε := by exact geomsery ε
   by_cases hsempty : S = ∅
   · use ∅
