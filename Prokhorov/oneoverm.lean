@@ -191,6 +191,15 @@ lemma geomsery (ε : ℝ≥0) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNRea
   rw [form]
   exact geom_series
 
+lemma better : ∀ m:ℕ, (2 : NNReal) ^ (-(1:ℤ) + -(m:ℤ)) = 1 / 2 * (1 / 2) ^ m := by
+  intro m
+  field_simp
+  rw [← @Int.neg_add]
+  rw [@zpow_neg]--rw [←npow_add (n:=(m:ℕ)) (k:=1) (x:=2)]
+  refine (inv_mul_eq_one₀ ?_).mpr ?_
+  · refine zpow_ne_zero (1 + m) (by simp)
+  · refine zpow_one_add₀ (by simp) m
+
 theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     TightProb S := by
   rw [tightProb_iff_nnreal]
@@ -298,8 +307,22 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       · simp only [ofReal_coe_nnreal, coe_lt_top, bigK]
     _ = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by sorry
     _ < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by
-      
-      sorry
+      refine NNReal.tsum_strict_mono ?_ ?_
+      · rw [summable_mul_left_iff] --Show it is summable
+        field_simp
+        simp_rw [better]
+        simp
+        rw [summable_mul_left_iff]
+        field_simp
+        · have ugh : (Summable fun m ↦ 1 / 2 ^ m) ↔ (Summable fun m ↦ (1 / 2) ^ m) := by
+            sorry
+          --rw [ugh]
+          --exact summable_geometric_two
+          sorry
+        · simp
+        · exact Ne.symm (ne_of_lt εpos)
+      · sorry --Goal: (fun m ↦ 1 - μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))) < fun m ↦ ε * 2 ^ (-(↑m + 1))
+      --refine ENNReal.tsum_lt_tsum  (α := ℕ) (f:= fun m ↦ ((1:NNReal) - μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1)))))) (g := fun m ↦ (ε : ENNReal) * 2 ^ (-((m:ℤ) + 1))) ?_ ?_ ?_
     _ = ε := by exact geomsery ε
   by_cases hsempty : S = ∅
   · use ∅
