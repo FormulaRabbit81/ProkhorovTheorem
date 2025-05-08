@@ -4,7 +4,7 @@ import Mathlib
 --set_option diagnostics true
 set_option linter.style.longLine false
 set_option linter.unusedTactic false
-set_option linter.flexible true
+set_option linter.flexible false
 open Topology Metric Filter Set ENNReal NNReal MeasureTheory.ProbabilityMeasure TopologicalSpace
 
 namespace MeasureTheory
@@ -129,8 +129,7 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
       simp_rw [←Set.accumulate_def]
       exact ProbabilityMeasure.tendsto_measure_iUnion_accumulate
     rw [Cov] at re
-    simp at re
-    exact re
+    simpa using re
 
   have oop : ∀ᶠ n in atTop, μnew (⋃ i ≤ n, U i) ≥ 1 - ε / 2 := by
     apply Tendsto.eventually_const_le (v := 1)
@@ -147,31 +146,8 @@ lemma claim5point2 (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
 
 
 lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ = 1 := by
-  have frac : ∑' (x : ℕ), ((2 ^ (x+1)) : ℝ)⁻¹ = ∑' (x : ℕ), (1 / 2) ^ (x+1) := by
-    congr
-    simp
-  rw [frac]
-  have gethalf : ∑' (x : ℕ), ((1 : ℝ) / 2) ^ (x + 1) = 1/2 * (∑' (x : ℕ), 1 / 2 ^ x) := by
-    have robert : ∑' (x : ℕ), ((1 : ℝ) / 2) ^ (x + 1) = ∑' (x : ℕ), (1/2) * (1 / 2) ^ x := by
-      simp
-      congr
-      field_simp
-      congr! with x
-      exact pow_succ' 2 x
-    rw [robert]
-    simp
-    simp_all only [one_div, inv_pow]
-    exact _root_.tsum_mul_left
-  rw [gethalf]
-  field_simp
-  have sdfdhf : ∑' (x : ℕ), 1 / 2 ^ x = ∑' n : ℕ, ((1 : ℝ) / 2) ^ n := by
-    simp_all only [one_div, inv_pow]
-  rw [sdfdhf]
-  exact tsum_geometric_two
-
-    --have eq : ∑' (x : ℕ), (1 / 2) ^ x = 1 / (1 - 1 / 2) := by
-
-
+  simp_rw [← inv_pow, pow_succ, _root_.tsum_mul_right, tsum_geometric_inv_two]
+  norm_num
 
 variable [CompleteSpace X]
 
