@@ -331,8 +331,8 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
         rw [@mem_ball']
         apply hx.trans
         linarith
-  have tsumMeasureCompl (μ : ProbabilityMeasure X): ∑' (m : ℕ), μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ =
-  ∑' (m : ℕ), (1 - μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))) := by
+  have tsumMeasureCompl (μ : ProbabilityMeasure X): ∑' (m : ℕ), μ (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1))))ᶜ =
+  ∑' (m : ℕ), (1 - μ (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1))))) := by
     congr! with m
     refine ENNReal.coe_inj.mp ?_
     rw [@ennreal_coeFn_eq_coeFn_toMeasure, measure_compl ?_ ?_]
