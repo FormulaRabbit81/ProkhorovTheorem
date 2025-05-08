@@ -3,6 +3,7 @@ import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 --set_option diagnostics true
 set_option linter.style.longLine false
 set_option linter.unusedTactic false
+set_option linter.flexible true
 open Topology Metric Filter Set ENNReal NNReal MeasureTheory.ProbabilityMeasure TopologicalSpace
 
 namespace MeasureTheory
@@ -336,6 +337,23 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
         rw [@mem_ball']
         apply hx.trans
         linarith
+  have tsumMeasureCompl (μ : ProbabilityMeasure X): ∑' (m : ℕ), μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ =
+  ∑' (m : ℕ), (1 - μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))) := by
+    congr! with m
+    refine ENNReal.coe_inj.mp ?_
+    rw [@ennreal_coeFn_eq_coeFn_toMeasure, measure_compl ?_ ?_]
+    · simp
+    · refine Finite.measurableSet_biUnion ?_ ?_
+      · simp only [Nat.le_eq]
+        refine BddAbove.finite ?_
+        refine bddAbove_def.mpr ?_
+        use km (m + 1) + 1
+        intro y
+        rw [@mem_def]
+        omega
+      · intro b _
+        exact measurableSet_closure
+    · simp
 
 
   have bigcalc (μ : ProbabilityMeasure X) (hs : μ ∈ S) := calc
@@ -344,7 +362,6 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       simp only [bigK]
       simp only [compl_iInter, compl_iUnion, bigK]
     _ ≤ ∑' m, μ ((⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) := by
-      simp
       apply nnreal_tsum_ge_onion
       rw [← @tsum_coe_ne_top_iff_summable]
       -- Can possibly cut this shorter here
@@ -353,50 +370,61 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       use ε
       refine ⟨ ?_, ?_, ?_⟩
       · exact zero_le_coe
-      · simp
+      · rw [←geomsery ε]
+        simp only [ennreal_coeFn_eq_coeFn_toMeasure, ofReal_coe_nnreal]
+        have ljbdfi : ∑' (b : ℕ), μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (b + 1)), closure (ball (D i) (1 / (↑b + 1))))ᶜ
+         = ∑' (m : ℕ), (1 - μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))) := by
+          rw [← tsumMeasureCompl]
+          have klfb : ↑(∑' (m : ℕ), μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / ((m:ℝ) + 1))))ᶜ) =
+            (∑' (m : ℕ), μ.toMeasure (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / ((m:ℝ) + 1))))ᶜ) := by
+              --rw [@coeFn_def]
+              rw [@tsum_eq_toNNReal_tsum]
+              simp
+              refine coe_toNNReal ?_
+              refine lt_top_iff_ne_top.mp ?_
+              refine lt_iff_exists_nnreal_btwn.mpr ?_
+              use ε
+              constructor
+              · sorry
+              · exact coe_lt_top
+              --rw [ENNReal.tsum_toNNReal_eq]
 
-        have eq : ∑' (b : ℕ), μ.toMeasure (⋂ i, ⋂ (_ : i ≤ km (b+1)), (closure (ball (D i) (b+1)⁻¹))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
-          have compl : ∑' m, μ ((⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
-            congr
-            ext m
-            congr
-            refine Eq.symm (tsub_eq_of_eq_add ?_)
-            apply Eq.symm
-            rw [add_comm]
-            exact meas_compl_thang μ km m D
-          rw [←compl]
-          have push_coerce : ↑(∑' (m : ℕ), μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ) = ∑' (m : ℕ), μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ := by
-            sorry
-          rw [push_coerce]
-          congr
-          simp
 
-        -- have lt_geomser : ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by
-        --   apply?
 
-        have geom_ser : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) = ε := by
-          exact geomsery ε
-        rw [eq]
-        gcongr
-        rw [← geom_ser]
-        exact lt_geom_series μ hs
+
+          exact id (Eq.symm klfb)
+
+
+
+        rw [ljbdfi]
+        exact coe_lt_coe_of_lt (lt_geom_series μ hs)
+
+
+        -- have eq : ∑' (b : ℕ), μ.toMeasure (⋂ i, ⋂ (_ : i ≤ km (b+1)), (closure (ball (D i) (b+1)⁻¹))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
+        --   have compl : ∑' m, μ ((⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
+        --     congr
+        --     ext m
+        --     congr
+        --     refine Eq.symm (tsub_eq_of_eq_add ?_)
+        --     apply Eq.symm
+        --     rw [add_comm]
+        --     exact meas_compl_thang μ km m D
+        --   rw [←compl]
+        --   have push_coerce : ↑(∑' (m : ℕ), μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ) = ∑' (m : ℕ), μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ := by
+        --     sorry
+        --   rw [push_coerce]
+        --   congr
+        --   simp
+
+        -- -- have lt_geomser : ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by
+        -- --   apply?
+        -- rw [eq]
+        -- gcongr
+        -- rw [← geomsery ε]
+        -- exact lt_geom_series μ hs
       · simp only [ofReal_coe_nnreal, coe_lt_top, bigK]
     _ = ∑' m, (1 - μ (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
-      congr! with m
-      refine ENNReal.coe_inj.mp ?_
-      rw [@ennreal_coeFn_eq_coeFn_toMeasure, measure_compl ?_ ?_]
-      · simp
-      · refine Finite.measurableSet_biUnion ?_ ?_
-        · simp only [Nat.le_eq]
-          refine BddAbove.finite ?_
-          refine bddAbove_def.mpr ?_
-          use km (m + 1) + 1
-          intro y
-          rw [@mem_def]
-          omega
-        · intro b _
-          exact measurableSet_closure
-      · simp
+      exact tsumMeasureCompl μ
     _ < (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ) : NNReal) := by
       exact lt_geom_series μ hs
     _ = ε := by exact geomsery ε
@@ -520,3 +548,4 @@ end
 end MeasureTheory
 --#min_imports
 --#lint
+--#lint unusedHavesSuffices
