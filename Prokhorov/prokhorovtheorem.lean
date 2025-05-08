@@ -4,7 +4,7 @@ import Mathlib
 --set_option diagnostics true
 set_option linter.style.longLine false
 set_option linter.unusedTactic false
-set_option linter.flexible false
+set_option linter.flexible true
 open Topology Metric Filter Set ENNReal NNReal MeasureTheory.ProbabilityMeasure TopologicalSpace
 
 namespace MeasureTheory
