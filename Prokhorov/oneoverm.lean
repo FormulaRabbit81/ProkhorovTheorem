@@ -1,4 +1,5 @@
 import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
+import Mathlib
 --set_option maxHeartbeats 400000
 --set_option diagnostics true
 set_option linter.style.longLine false
@@ -44,25 +45,18 @@ lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
 variable [OpensMeasurableSpace X]
 
 lemma meas_compl_thang (μ : ProbabilityMeasure X) (km : ℕ → ℕ) (m:ℕ) (D : ℕ → X) :
-  μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1)))) +
-  μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))ᶜ = 1 := by
-    refine ENNReal.coe_eq_one.mp ?_
-    push_cast
-    have liyg : ↑(μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / ((m:ℝ) + 1))))ᶜ) = μ.toMeasure ((⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / ((m:ℝ) + 1)))))ᶜ := by
-      simp
-    have liyg2 : ↑(μ (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / ((m:ℝ) + 1))))) = μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1)))) := by
-      simp
-    rw [liyg]
-    rw [liyg2]
-    refine prob_add_prob_compl ?_
-    refine Finite.measurableSet_biUnion ?_ ?_
-    · refine finite_iff_bddAbove.mpr ?_
-      refine bddAbove_def.mpr ?_
-      use km (m + 1)
-      intro y hy
-      exact hy
-    · intro b hb
-      exact measurableSet_closure
+    μ (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1)))) +
+    μ (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1))))ᶜ = 1 := by
+  suffices MeasurableSet (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1)))) by
+    have := prob_add_prob_compl (α := X) (μ := μ) this
+    simp only [← ennreal_coeFn_eq_coeFn_toMeasure] at this
+    exact_mod_cast this
+  change MeasurableSet (⋃ i ∈ {i | i ≤ km (m + 1)}, _)
+  refine Finite.measurableSet_biUnion ?_ ?_
+  · exact finite_le_nat (km (m + 1))
+  · intro b
+    intro hb
+    exact measurableSet_closure
 
 variable [SeparableSpace X]
 noncomputable section
