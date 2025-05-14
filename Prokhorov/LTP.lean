@@ -1,40 +1,27 @@
-import Mathlib.Probability.IdentDistrib
-import Mathlib.MeasureTheory.Integral.IntervalIntegral -- Assuming relevant modules are available
-set_option linter.style.longLine false
+import Mathlib.MeasureTheory.Measure.NullMeasurable
 
-open MeasureTheory Filter Finset Asymptotics
-open scoped Topology BigOperators MeasureTheory ProbabilityTheory ENNReal NNReal
-namespace ProbabilityTheory
+open MeasureTheory
 
-variable {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
+variable {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
 
-def is_partition (B : ℕ → Set Ω) : Prop :=
+/-- `IsPartition` is a Prop that checks if a collection of sets
+    partitions the space (pairwise disjoint and union is the whole space).-/
+def IsPartition (B : ℕ → Set Ω) : Prop :=
   (∀ i j, i ≠ j → (Disjoint (B i) (B j))) ∧ (⋃ i, B i = ⊤)
 
-omit [IsProbabilityMeasure μ] in
-theorem ltp (A : Set Ω) (ha : MeasurableSet A) (B : ℕ → Set Ω) (hm: ∀ i, MeasurableSet <| B i) (hb : is_partition B) : μ A = ∑' i : ℕ, μ (A ∩ B i) := by
-  -- ℙ A = ∑ i, ℙ (A ∩ B i) :=
+/-! The law of total probability states that if `A` is a measurable set
+and `B` is a partition of the Space, the measure of A is the sum of the
+measure of A ∩ B i-/
+theorem Law_Of_Total_Probability (A : Set Ω) (ha : MeasurableSet A) (B : ℕ → Set Ω)
+  (hm: ∀ i, MeasurableSet <| B i) (hb : IsPartition B) : μ A = ∑' i : ℕ, μ (A ∩ B i) := by
   have A_union : A = ⋃ i, (A ∩ B i) := by
-    --refine Set.ext ?h
-    rw [←Set.inter_iUnion]
-    rw [hb.right]
-    rw [Set.top_eq_univ, Set.inter_univ]
-  --conv_lhs => rw [A_union]
+    rw [←Set.inter_iUnion,hb.right, Set.top_eq_univ, Set.inter_univ]
   nth_rewrite 1 [A_union]
   rw [measure_iUnion]
-  · sorry
+  · obtain ⟨hdisjoint,huniv⟩ := hb
+    refine (pairwise_disjoint_on fun i ↦ A ∩ B i).mpr ?_
+    intro m n hmn
+    specialize hdisjoint m n (Nat.ne_of_lt hmn)
+    refine Disjoint.inter_left' A ?_
+    exact Disjoint.inter_right' A hdisjoint
   · exact fun i ↦ MeasurableSet.inter ha (hm i)
-
-  -- intro i j h
-  -- rw [Function.onFun]
-  -- have := hb.left i j h
-  -- rw [Disjoint]
-  -- intro x hx hx'
-  -- apply this
-  -- apply le_trans hx
-  -- simp only [Set.le_eq_subset, Set.inter_subset_right]
-  -- apply le_trans hx'
-  -- simp only [Set.le_eq_subset, Set.inter_subset_right]
-  -- intro i
-  -- specialize hm i
-  -- apply MeasurableSet.inter ha hm
