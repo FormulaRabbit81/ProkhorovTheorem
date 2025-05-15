@@ -18,10 +18,11 @@ theorem Law_Of_Total_Probability (A : Set Ω) (ha : MeasurableSet A) (B : ℕ �
     rw [←Set.inter_iUnion,hb.right, Set.top_eq_univ, Set.inter_univ]
   nth_rewrite 1 [A_union]
   rw [measure_iUnion]
-  · obtain ⟨hdisjoint,huniv⟩ := hb
+  · obtain ⟨hdisjoint, huniv⟩ := hb
     refine (pairwise_disjoint_on fun i ↦ A ∩ B i).mpr ?_
     intro m n hmn
     specialize hdisjoint m n (Nat.ne_of_lt hmn)
     refine Disjoint.inter_left' A ?_
     exact Disjoint.inter_right' A hdisjoint
   · exact fun i ↦ MeasurableSet.inter ha (hm i)
+
