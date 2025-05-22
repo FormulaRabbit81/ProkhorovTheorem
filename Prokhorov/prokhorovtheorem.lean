@@ -1,4 +1,6 @@
 import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
+import Mathlib.Tactic.Rify
+
 --import Mathlib
 --set_option maxHeartbeats 400000
 --set_option diagnostics true
@@ -6,7 +8,6 @@ set_option linter.style.longLine false
 set_option linter.unusedTactic false
 set_option linter.flexible true
 open Topology Metric Filter Set ENNReal NNReal MeasureTheory.ProbabilityMeasure TopologicalSpace
-
 namespace MeasureTheory
 
 open scoped Topology ENNReal NNReal BoundedContinuousFunction
@@ -36,8 +37,14 @@ theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
   exact tendsto_atTop_iSup fun i j hij ↦ by gcongr
 
 -- Definition taken from Rémy's Repository but modified to use ProbabilityMeasure instead of measure. - Need to change this later
+def Tight (G : Set (Measure X)) : Prop :=
+  ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ G, μ Kᶜ ≤ ε
+
 def TightProb (S : Set (ProbabilityMeasure X)) : Prop :=
   ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
+
+/-- Need to sort this out so I can put this in Remy's repo-/
+lemma tight_iff_tightprob (G : Set (Measure X)) {S : Set (ProbabilityMeasure X)} : Tight G ↔ TightProb S := by sorry
 
 lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
     TightProb S ↔ ∀ ε : ℝ≥0, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε := by
@@ -149,12 +156,12 @@ lemma geomsery (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ)) = ε :
 lemma better : ∀ m:ℕ, (2 : NNReal) ^ (-(1:ℤ) + -(m:ℤ)) = 1 / 2 * (1 / 2) ^ m := by
   intro m
   field_simp
-  rw [← @Int.neg_add]
-  rw [@zpow_neg]
+  rw [← @Int.neg_add, zpow_neg]
   refine (inv_mul_eq_one₀ ?_).mpr ?_
   · refine zpow_ne_zero (1 + m) (by simp)
   · refine zpow_one_add₀ (by simp) m
 
+-- set_option diagnostics true in
 theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     TightProb S := by
   rw [tightProb_iff_nnreal]
@@ -221,9 +228,8 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     rw [← ENNReal.coe_ofNat,← ENNReal.coe_zpow,← ENNReal.coe_mul,ENNreal_ProbMeasure_toMeasure, ← ENNReal.coe_add,ENNReal.one_le_coe_iff, ← NNReal.coe_le_coe]
     apply le_trans hbound
     push_cast
-    refine add_le_add ?_ ?_
-    · gcongr
-      refine apply_mono μ ?_
+    gcongr
+    · refine apply_mono μ ?_
       refine iUnion₂_mono ?_
       intro i hi
       rw [@subset_def]
@@ -258,8 +264,6 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       · intro b _
         exact measurableSet_closure
     · simp
-
-
   have bigcalc (μ : ProbabilityMeasure X) (hs : μ ∈ S) := calc
     μ.toMeasure (bigK)ᶜ
     _ = μ.toMeasure (⋃ m,(⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) := by
@@ -314,14 +318,26 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
         let B : ℝ≥0∞ := δ - (↑δ⁻¹ + (1 / 2: ℝ≥0∞))⁻¹
         specialize hx B
         have Bpos : 0 < B := by
-          simp only [one_div, tsub_pos_iff_lt, B, bigK]; field_simp; refine div_lt_of_lt_mul ?_
-          ring_nf; refine ENNReal.lt_add_of_sub_lt_left ?_ ?_
-          left; exact one_ne_top
-          field_simp; rw [@ENNReal.div_eq_inv_mul]
-          rw [ENNReal.inv_mul_cancel (ne_of_gt δpos) δfin]
-          simp only [tsub_self, ENNReal.div_pos_iff, ne_eq, ofNat_ne_top, not_false_eq_true,
-            and_true, B, bigK]
-          exact pos_iff_ne_zero.mp δpos
+          unfold B
+          rw [tsub_pos_iff_lt]
+          lift δ to ℝ≥0 using δfin
+          suffices ↑((δ:NNReal)⁻¹ + ↑((1:NNReal) / (2:NNReal)))⁻¹ < (δ:ENNReal) by -- shoudln't be necessary
+            convert this using 1
+            push_cast -- cast of inverse equals invers of cast, missing norm_cast/push_cast lemma?
+            simp only [one_div, ne_eq, add_eq_zero, inv_eq_zero, OfNat.ofNat_ne_zero, and_false,
+              not_false_eq_true, coe_inv, coe_add, coe_ofNat, inv_inj, bigK]
+            refine (ENNReal.add_left_inj <| by simp).mpr ?_
+            · refine Eq.symm (coe_inv ?_)
+              simp only [gt_iff_lt, ENNReal.coe_pos, bigK] at δpos
+              exact Ne.symm (ne_of_lt δpos)
+          norm_cast at δpos ⊢
+          rw [inv_lt_iff_one_lt_mul₀]
+          field_simp
+          rw [lt_div_iff₀,← NNReal.coe_lt_coe]
+          rify
+          have H : 0 < (δ:ℝ) ^2:= by positivity
+          linear_combination H
+          all_goals positivity
         specialize hx Bpos
         obtain ⟨y, hy, hyd⟩ := hx
         rw [@mem_ball', ← @edist_lt_ofReal] at hy
@@ -389,6 +405,35 @@ theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X
   constructor
   · sorry
   · exact fun a ↦ IsTightFamily_of_isRelativelyCompact G a
+
+-- /--Nonsense from here onwards-/
+-- variable {A B : Type*} [TopologicalSpace A] {mA : MeasurableSpace A}
+--   {μ ν : Measure A} {G H : Set (Measure A)}
+-- /-- A set of measures `S` is tight if for all `0 < ε`, there exists a compact set `K` such that
+-- for all `μ ∈ S`, `μ Kᶜ ≤ ε`.
+-- This is formulated in terms of filters, and proven equivalent to the definition above
+-- in `IsTightMeasureSet_iff_exists_isCompact_measure_compl_le`. -/
+-- def IsTightMeasureSet (S : Set (Measure X)) : Prop :=
+--   Tendsto (⨆ μ ∈ S, μ) (cocompact X).smallSets (𝓝 0)
+
+-- /-- A set of measures `S` is tight if for all `0 < ε`, there exists a compact set `K` such that
+-- -- for all `μ ∈ S`, `μ Kᶜ ≤ ε`. -/
+-- lemma IsTightMeasureSet_iff_exists_isCompact_measure_compl_le :
+--     IsTightMeasureSet G ↔ ∀ ε, 0 < ε → ∃ K : Set A, IsCompact K ∧ ∀ μ ∈ S, μ (Kᶜ) ≤ ε := by
+--   simp only [IsTightMeasureSet, ENNReal.tendsto_nhds ENNReal.zero_ne_top, gt_iff_lt, zero_add,
+--     iSup_apply, mem_Icc, tsub_le_iff_right, zero_le, iSup_le_iff, true_and, eventually_smallSets,
+--     mem_cocompact]
+--   refine ⟨fun h ε hε ↦ ?_, fun h ε hε ↦ ?_⟩
+--   · obtain ⟨A, ⟨K, h1, h2⟩, hA⟩ := h ε hε
+--     exact ⟨K, h1, hA Kᶜ h2⟩
+--   · obtain ⟨K, h1, h2⟩ := h ε hε
+--     exact ⟨Kᶜ, ⟨K, h1, subset_rfl⟩, fun A hA μ hμS ↦ (μ.mono hA).trans (h2 μ hμS)⟩
+
+-- theorem isTightMeasureSet_iff_isCompact_closure
+--   {E : Type*} {mE : MeasurableSpace E} [MetricSpace E] [CompleteSpace E]
+--   [SecondCountableTopology E] [BorelSpace E] {S : Set (ProbabilityMeasure E)} :
+--     IsTightMeasureSet {((μ : ProbabilityMeasure E) : Measure E) | μ ∈ S}
+--       ↔ IsCompact (closure S) := by sorry
 
 
 end section

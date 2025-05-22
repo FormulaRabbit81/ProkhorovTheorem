@@ -25,4 +25,3 @@ theorem Law_Of_Total_Probability (A : Set Ω) (ha : MeasurableSet A) (B : ℕ �
     refine Disjoint.inter_left' A ?_
     exact Disjoint.inter_right' A hdisjoint
   · exact fun i ↦ MeasurableSet.inter ha (hm i)
-
