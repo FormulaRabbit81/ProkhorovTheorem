@@ -36,21 +36,35 @@ theorem prob_tendsto_measure_iUnion_accumulate {α ι : Type*}
   rw [measure_iUnion_eq_iSup_accumulate]
   exact tendsto_atTop_iSup fun i j hij ↦ by gcongr
 
--- Definition taken from Rémy's Repository but modified to use ProbabilityMeasure instead of measure. - Need to change this later
-def Tight (G : Set (Measure X)) : Prop :=
-  ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ G, μ Kᶜ ≤ ε
+-- Definition taken from Rémy's Repository
+def IsTightMeasureSet (S : Set (Measure X)) : Prop :=
+  Tendsto (⨆ μ ∈ S, μ) (cocompact X).smallSets (𝓝 0)
+
+-- /-- A set of measures `S` is tight if for all `0 < ε`, there exists a compact set `K` such that
+-- -- for all `μ ∈ S`, `μ Kᶜ ≤ ε`. By Rémy-/
+lemma IsTightMeasureSet_iff_exists_isCompact_measure_compl_le {S : Set (Measure X)}:
+    IsTightMeasureSet S↔ ∀ ε, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ (Kᶜ) ≤ ε := by
+  simp only [IsTightMeasureSet, ENNReal.tendsto_nhds ENNReal.zero_ne_top, gt_iff_lt, zero_add,
+    iSup_apply, mem_Icc, tsub_le_iff_right, zero_le, iSup_le_iff, true_and, eventually_smallSets,
+    mem_cocompact]
+  refine ⟨fun h ε hε ↦ ?_, fun h ε hε ↦ ?_⟩
+  · obtain ⟨A, ⟨K, h1, h2⟩, hA⟩ := h ε hε
+    exact ⟨K, h1, hA Kᶜ h2⟩
+  · obtain ⟨K, h1, h2⟩ := h ε hε
+    exact ⟨Kᶜ, ⟨K, h1, subset_rfl⟩, fun A hA μ hμS ↦ (μ.mono hA).trans (h2 μ hμS)⟩
 
 def TightProb (S : Set (ProbabilityMeasure X)) : Prop :=
   ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
-
-/-- Need to sort this out so I can put this in Remy's repo-/
-lemma tight_iff_tightprob (G : Set (Measure X)) {S : Set (ProbabilityMeasure X)} : Tight G ↔ TightProb S := by sorry
 
 lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
     TightProb S ↔ ∀ ε : ℝ≥0, 0 < ε → ∃ K : Set X, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε := by
   simp only [TightProb, forall_ennreal, ENNReal.coe_pos, ENNReal.coe_le_coe, zero_lt_top, le_top,
     implies_true, and_true, forall_const, and_iff_left_iff_imp]
   exact fun _ ↦ ⟨∅, isCompact_empty⟩
+
+lemma Tightprob_iff_Tight {S : Set (ProbabilityMeasure X)}: TightProb S ↔ IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S} := by
+  rw [@IsTightMeasureSet_iff_exists_isCompact_measure_compl_le]
+  simp [TightProb]
 
 variable [OpensMeasurableSpace X]
 
@@ -119,17 +133,15 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
       · simp only [eventually_atTop, ge_iff_le, forall_exists_index]
         intro b c h
         apply le_trans (h c le_rfl) (hcontradiction _)
-  have cdiction : Tendsto (fun n => μlim (⋃ i ≤ n, U i)) atTop (𝓝 1) := by
-    have accumulation : Tendsto (fun n => μlim (⋃ i ≤ n, U i)) atTop (𝓝 (μlim (⋃ i, U i))) := by
-      simp_rw [←Set.accumulate_def]
-      exact ProbabilityMeasure.tendsto_measure_iUnion_accumulate
-    rw [Cov] at accumulation
-    simpa using accumulation
+
+  have accumulation : Tendsto (fun n => μlim (⋃ i ≤ n, U i)) atTop (𝓝 (μlim (⋃ i, U i))) := by
+    simp_rw [←Set.accumulate_def]
+    exact ProbabilityMeasure.tendsto_measure_iUnion_accumulate
+  rw [Cov, coeFn_univ, ←NNReal.tendsto_coe] at accumulation
   have tends_to_univ : ∀ᶠ n in atTop, μlim (⋃ i ≤ n, U i) ≥ 1 - ε / 2 := by
     apply Tendsto.eventually_const_le (v := 1)
     norm_num; positivity
-    rw [←NNReal.tendsto_coe] at cdiction
-    exact cdiction
+    exact accumulation
   suffices ∀ᶠ n : ℕ in atTop, False by exact this.exists.choose_spec
   filter_upwards [tends_to_univ] with n hn
   have falseity := hn.trans (Measurebound n)
@@ -400,11 +412,11 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
 -- lemma fivepoint3 {MeasurableSpace X} (MetricSpace X)  (h : IsCompact X) : (inferInstance : TopologicalSpace (LevyProkhorov (ProbabilityMeasure X))) := by
 --   sorry
 
-theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X)]:
-   (TightProb G) ↔ (IsCompact (closure G)) := by
-  constructor
-  · sorry
-  · exact fun a ↦ IsTightFamily_of_isRelativelyCompact G a
+-- theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X)]:
+--    (TightProb G) ↔ (IsCompact (closure G)) := by
+--   constructor
+--   · sorry
+--   · exact fun a ↦ IsTightFamily_of_isRelativelyCompact G a
 
 -- /--Nonsense from here onwards-/
 -- variable {A B : Type*} [TopologicalSpace A] {mA : MeasurableSpace A}
@@ -416,24 +428,17 @@ theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X
 -- def IsTightMeasureSet (S : Set (Measure X)) : Prop :=
 --   Tendsto (⨆ μ ∈ S, μ) (cocompact X).smallSets (𝓝 0)
 
--- /-- A set of measures `S` is tight if for all `0 < ε`, there exists a compact set `K` such that
--- -- for all `μ ∈ S`, `μ Kᶜ ≤ ε`. -/
--- lemma IsTightMeasureSet_iff_exists_isCompact_measure_compl_le :
---     IsTightMeasureSet G ↔ ∀ ε, 0 < ε → ∃ K : Set A, IsCompact K ∧ ∀ μ ∈ S, μ (Kᶜ) ≤ ε := by
---   simp only [IsTightMeasureSet, ENNReal.tendsto_nhds ENNReal.zero_ne_top, gt_iff_lt, zero_add,
---     iSup_apply, mem_Icc, tsub_le_iff_right, zero_le, iSup_le_iff, true_and, eventually_smallSets,
---     mem_cocompact]
---   refine ⟨fun h ε hε ↦ ?_, fun h ε hε ↦ ?_⟩
---   · obtain ⟨A, ⟨K, h1, h2⟩, hA⟩ := h ε hε
---     exact ⟨K, h1, hA Kᶜ h2⟩
---   · obtain ⟨K, h1, h2⟩ := h ε hε
---     exact ⟨Kᶜ, ⟨K, h1, subset_rfl⟩, fun A hA μ hμS ↦ (μ.mono hA).trans (h2 μ hμS)⟩
 
--- theorem isTightMeasureSet_iff_isCompact_closure
---   {E : Type*} {mE : MeasurableSpace E} [MetricSpace E] [CompleteSpace E]
---   [SecondCountableTopology E] [BorelSpace E] {S : Set (ProbabilityMeasure E)} :
---     IsTightMeasureSet {((μ : ProbabilityMeasure E) : Measure E) | μ ∈ S}
---       ↔ IsCompact (closure S) := by sorry
+
+theorem isTightMeasureSet_iff_isCompact_closure
+  {X : Type*} {mX : MeasurableSpace X} [MetricSpace X] [CompleteSpace X]
+  [SecondCountableTopology X] [BorelSpace X] {S : Set (ProbabilityMeasure X)} :
+    IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S}
+      ↔ IsCompact (closure S) := by
+      constructor
+      · sorry
+      · refine fun a => (Tightprob_iff_Tight.mp ?_)
+        exact IsTightFamily_of_isRelativelyCompact S a
 
 
 end section
