@@ -181,7 +181,7 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     · exact isCompact_empty
     intro μ hμ
     rw [← @univ_eq_empty_iff] at hempty
-    rw [← hempty]
+    rw [←hempty]
     simp_all only [univ_eq_empty_iff, compl_univ]
     rw [← ENNReal.coe_le_coe]
     simp
