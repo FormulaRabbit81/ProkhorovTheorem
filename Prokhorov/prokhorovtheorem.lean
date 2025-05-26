@@ -15,9 +15,9 @@ open scoped Topology ENNReal NNReal BoundedContinuousFunction
 
 variable {X : Type*} [MeasurableSpace X]
 
-lemma ENNreal_ProbMeasure_toMeasure (μ : ProbabilityMeasure X) (s : Set X) :
-    μ.toMeasure s = ((μ s) : ENNReal) := by
-    exact Eq.symm (ennreal_coeFn_eq_coeFn_toMeasure μ s)
+lemma ENNreal_ProbMeasure_toMeasure (μ : ProbabilityMeasure X) (A : Set X) :
+    μ.toMeasure A = ((μ A) : ENNReal) := by
+    exact Eq.symm (ennreal_coeFn_eq_coeFn_toMeasure μ A)
 
 lemma nnreal_tsum_ge_union {μ : ProbabilityMeasure X} (f : ℕ → Set X)
   (hf : Summable fun n ↦ μ (f n)) :
@@ -62,7 +62,7 @@ lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
     implies_true, and_true, forall_const, and_iff_left_iff_imp]
   exact fun _ ↦ ⟨∅, isCompact_empty⟩
 
-lemma Tightprob_iff_Tight {S : Set (ProbabilityMeasure X)}: TightProb S ↔ IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S} := by
+lemma Tightprob_iff_Tight {S : Set (ProbabilityMeasure X)} : TightProb S ↔ IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S} := by
   rw [@IsTightMeasureSet_iff_exists_isCompact_measure_compl_le]
   simp [TightProb]
 
@@ -158,11 +158,8 @@ lemma geomsery (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ)) = ε :
   rw [ENNReal.tsum_mul_left]
   nth_rw 2 [←mul_one (a :=ε)]
   congr
-  simp_rw [← Nat.cast_one (R := ℤ), ← Nat.cast_add, ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num)]
-  simp_rw [zpow_natCast, ENNReal.inv_pow]
-  rw [ENNReal.tsum_geometric_add_one]
-  norm_num
-  rw [ENNReal.inv_mul_cancel]
+  simp_rw [← Nat.cast_one (R := ℤ), ← Nat.cast_add, ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num), zpow_natCast, ENNReal.inv_pow, ENNReal.tsum_geometric_add_one]
+  norm_num; rw [ENNReal.inv_mul_cancel]
   all_goals norm_num
 
 lemma better : ∀ m:ℕ, (2 : NNReal) ^ (-(1:ℤ) + -(m:ℤ)) = 1 / 2 * (1 / 2) ^ m := by
@@ -177,9 +174,8 @@ lemma better : ∀ m:ℕ, (2 : NNReal) ^ (-(1:ℤ) + -(m:ℤ)) = 1 / 2 * (1 / 2)
 theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     TightProb S := by
   rw [tightProb_iff_nnreal]
-  by_cases hempty : ¬Nonempty X
-  · simp only [not_nonempty_iff] at hempty
-    intro ε εpos
+  by_cases hempty : IsEmpty X
+  · intro ε εpos
     use ∅
     constructor
     · exact isCompact_empty
@@ -189,7 +185,7 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     simp_all only [univ_eq_empty_iff, compl_univ]
     rw [← ENNReal.coe_le_coe]
     simp
-  simp only [not_nonempty_iff, not_isEmpty_iff] at hempty
+  simp only [not_isEmpty_iff] at hempty
 
   -- Introduce ε > 0 for which we need to find a compact set K with μ(K) ≥ 1 - ε for all μ ∈ S
   intro ε εpos
@@ -359,7 +355,6 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
             refine (toReal_eq_toReal_iff' (by simp) (by simp)).mp ?_
             rw [toReal_ofReal]
             simp; norm_cast; positivity
-          --rw [ofReal_toReal]
         rw [greivance_dos] at hy
         have le_sum : edist (D i) y + edist y x < ((↑⌈δ.toReal⁻¹⌉₊ + 1):ℝ≥0∞)⁻¹ + B := by
           exact ENNReal.add_lt_add hy hyd
@@ -417,18 +412,6 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
 --   constructor
 --   · sorry
 --   · exact fun a ↦ IsTightFamily_of_isRelativelyCompact G a
-
--- /--Nonsense from here onwards-/
--- variable {A B : Type*} [TopologicalSpace A] {mA : MeasurableSpace A}
---   {μ ν : Measure A} {G H : Set (Measure A)}
--- /-- A set of measures `S` is tight if for all `0 < ε`, there exists a compact set `K` such that
--- for all `μ ∈ S`, `μ Kᶜ ≤ ε`.
--- This is formulated in terms of filters, and proven equivalent to the definition above
--- in `IsTightMeasureSet_iff_exists_isCompact_measure_compl_le`. -/
--- def IsTightMeasureSet (S : Set (Measure X)) : Prop :=
---   Tendsto (⨆ μ ∈ S, μ) (cocompact X).smallSets (𝓝 0)
-
-
 
 theorem isTightMeasureSet_iff_isCompact_closure
   {X : Type*} {mX : MeasurableSpace X} [MetricSpace X] [CompleteSpace X]
