@@ -1,7 +1,5 @@
 import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 import Mathlib.Tactic.Rify
-
---import Mathlib
 --set_option maxHeartbeats 400000
 --set_option diagnostics true
 set_option linter.style.longLine false
@@ -86,10 +84,6 @@ noncomputable section
 
 variable (S : Set (ProbabilityMeasure X))
 
-abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
-
-abbrev T := P⁻¹' S
-
 lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     (hcomp: IsCompact (closure S)) (ε : ℝ) (heps : ε > 0) (Cov : ⋃ i, U i = univ):
     ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ (i ≤ k), U i) > 1 - ε := by
@@ -170,77 +164,24 @@ lemma better : ∀ m:ℕ, (2 : NNReal) ^ (-(1:ℤ) + -(m:ℤ)) = 1 / 2 * (1 / 2)
   · refine zpow_ne_zero (1 + m) (by simp)
   · refine zpow_one_add₀ (by simp) m
 
--- set_option diagnostics true in
-theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
-    TightProb S := by
-  rw [tightProb_iff_nnreal]
-  by_cases hempty : IsEmpty X
-  · intro ε εpos
-    use ∅
-    constructor
-    · exact isCompact_empty
-    intro μ hμ
-    rw [← @univ_eq_empty_iff] at hempty
-    rw [←hempty]
-    simp_all only [univ_eq_empty_iff, compl_univ]
-    rw [← ENNReal.coe_le_coe]
-    simp
-  simp only [not_isEmpty_iff] at hempty
-
-  -- Introduce ε > 0 for which we need to find a compact set K with μ(K) ≥ 1 - ε for all μ ∈ S
-  intro ε εpos
-  obtain ⟨D, fD⟩ := exists_dense_seq X
-  --obtain ⟨φ, hφ₁, hφ₂, hφ₃⟩ := exists_seq_strictAnti_tendsto (0 : ℝ)
-  -- For each m ≥ 1, cover X with balls of radius 1/m around points in the dense subset D
-  have hcov : ∀ m : ℕ, ⋃ i, ball (D i) (1 / (m+1)) = univ := by
-    rw [denseRange_iff] at fD
-    intro m
-    ext p
-    constructor
-    · exact fun a ↦ trivial
-    specialize fD p
-    specialize fD (1 / (m+1))
-    intro hp
-    have hmdiv : 1 / ((m : ℝ) + 1) > 0 := by
-      exact Nat.one_div_pos_of_nat
-    specialize fD hmdiv
-    exact mem_iUnion.mpr fD
-  have byclam : ∀ (m : ℕ), ∃ (k : ℕ),∀ μ ∈ S, μ (⋃ i ≤ k, ball (D i) (1 / (m+1))) > 1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
-    intro m
-    let ε' :=  (ε : ℝ) * 2 ^ (-m : ℤ)
-    apply MeasOpenCoverTendstoMeasUniv (S := S) (U := fun i => ball (D i) (1 / (m+1))) (ε := ε') (heps := _)
-    · intro i
-      exact isOpen_ball
-    · exact hcomp
-    · exact hcov m
-    · intro h _
-      positivity
-
-  choose! km hbound using id byclam
-  simp_all only [zpow_neg, zpow_natCast]
-  let bigK := ⋂ m, ⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1)))
-  --This is proven ahead of our calc block as it will need to be called
-  --multiple times inside to satisfy tsum's need to show summability
-  -- I had to do it inside the actual proof term because this particular
-  -- inequality required all our assumptions to be in scope
-  have lt_geom_series : ∀ (μ : ProbabilityMeasure X), μ ∈ S → ∑' (m : ℕ), (1 - μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))) ≤ ∑' (m : ℕ), (ε: ENNReal) * 2 ^ (-((m:ℤ) + 1)) := by
-    intro μ hs
-    refine ENNReal.tsum_le_tsum ?_
-    intro m
-    specialize hbound (m+1) μ hs
-    refine tsub_le_iff_tsub_le.mp ?_
-    apply le_of_lt at hbound
-    simp only [neg_add_rev, Int.reduceNeg, one_div, tsub_le_iff_right]
-    simp only [Nat.cast_add, Nat.cast_one, one_div, tsub_le_iff_right] at hbound
-    -- refine one_le_coe.mp ?_
-    rw [← ENNReal.coe_ofNat,← ENNReal.coe_zpow,← ENNReal.coe_mul,ENNreal_ProbMeasure_toMeasure, ← ENNReal.coe_add,ENNReal.one_le_coe_iff, ← NNReal.coe_le_coe]
-    apply le_trans hbound
+omit [OpensMeasurableSpace X] [SeparableSpace X] [CompleteSpace X] in
+lemma lt_geom_series (D : ℕ → X) (ε : ℝ≥0) (μ : ProbabilityMeasure X) (hs : μ ∈ S) (km : ℕ → ℕ) (hbound : ∀ k : ℕ, ∀μ ∈ S, ((μ (⋃ i, ⋃ (_ : i ≤ km k), ball (D i) (1 / (↑k + 1)))) : ℝ) > 1 - ↑ε * (2 ^ k)⁻¹) :
+  ∑' (m : ℕ), (1 - μ.toMeasure (⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (1 / (↑m + 1))))) ≤ ∑' (m : ℕ), (ε: ENNReal) * 2 ^ (-((m:ℤ) + 1)) := by
+  refine ENNReal.tsum_le_tsum ?_
+  intro m
+  specialize hbound (m+1) μ hs
+  refine tsub_le_iff_tsub_le.mp ?_
+  apply le_of_lt at hbound
+  simp only [neg_add_rev, Int.reduceNeg, one_div, tsub_le_iff_right]
+  simp only [Nat.cast_add, Nat.cast_one, one_div, tsub_le_iff_right] at hbound
+  rw [← ENNReal.coe_ofNat,← ENNReal.coe_zpow,← ENNReal.coe_mul,ENNreal_ProbMeasure_toMeasure, ← ENNReal.coe_add,ENNReal.one_le_coe_iff, ← NNReal.coe_le_coe]
+  · apply le_trans hbound
     push_cast
     gcongr
     · refine apply_mono μ ?_
       refine iUnion₂_mono ?_
       intro i hi
-      rw [@subset_def]
+      rw [subset_def]
       intro x hx
       rw [@mem_ball'] at hx
       rw [@EMetric.mem_closure_iff_infEdist_zero]
@@ -255,7 +196,60 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       norm_cast
       simp only [Nat.ofNat_pos, ne_eq, OfNat.ofNat_ne_one, not_false_eq_true, pow_right_inj₀]
       exact Nat.add_comm m 1
-    · simp
+  · simp
+
+-- set_option diagnostics true in
+theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
+    TightProb S := by
+  rw [tightProb_iff_nnreal]
+  by_cases hempty : IsEmpty X
+  · intro ε εpos
+    use ∅
+    constructor
+    · exact isCompact_empty
+    intro μ hμ
+    rw [← univ_eq_empty_iff] at hempty
+    rw [←hempty]
+    simp_all only [univ_eq_empty_iff, compl_univ]
+    rw [← ENNReal.coe_le_coe]
+    simp
+  simp only [not_isEmpty_iff] at hempty
+
+  -- Introduce ε > 0 for which we need to find a compact set K with μ(K) ≥ 1 - ε for all μ ∈ S
+  intro ε εpos
+
+  --obtain ⟨φ, hφ₁, hφ₂, hφ₃⟩ := exists_seq_strictAnti_tendsto (0 : ℝ)
+  -- For each m ≥ 1, cover X with balls of radius 1/m around points in the dense subset D
+  obtain ⟨D, fD⟩ := exists_dense_seq X
+  have hcov : ∀ m : ℕ, ⋃ i, ball (D i) (1 / (m+1)) = univ := by
+    intro m; rw [denseRange_iff] at fD
+    ext p
+    constructor
+    · exact fun a ↦ trivial
+    intro hp
+    have hmdiv : 1 / ((m : ℝ) + 1) > 0 := by
+      exact Nat.one_div_pos_of_nat
+    specialize fD p (1 / (m+1)) hmdiv
+    exact mem_iUnion.mpr fD
+  have byclaim : ∀ (m : ℕ), ∃ (k : ℕ),∀ μ ∈ S, μ (⋃ i ≤ k, ball (D i) (1 / (m+1))) > 1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
+    intro m
+    let ε' :=  (ε : ℝ) * 2 ^ (-m : ℤ)
+    apply MeasOpenCoverTendstoMeasUniv (S := S) (U := fun i => ball (D i) (1 / (m+1))) (ε := ε') (heps := _)
+    · intro i
+      exact isOpen_ball
+    · exact hcomp
+    · exact hcov m
+    · intro h _
+      positivity
+
+  choose! km hbound using id byclaim
+  simp_all only [zpow_neg, zpow_natCast]
+  let bigK := ⋂ m, ⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1)))
+  --This is proven ahead of our calc block as it will need to be called
+  --multiple times inside to satisfy tsum's need to show summability
+  -- I had to do it inside the actual proof term because this particular
+  -- inequality required all our assumptions to be in scope
+
   have tsumMeasureCompl (μ : ProbabilityMeasure X) : ∑' (m : ℕ), μ.toMeasure (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1))))ᶜ =
   ∑' (m : ℕ), (1 - μ.toMeasure (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1))))) := by
     congr! with m
@@ -282,7 +276,7 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     _ = ∑' m, (1 - μ.toMeasure (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
       exact tsumMeasureCompl μ
     _ ≤ (∑' (m : ℕ), (ε : ENNReal) * 2 ^ (-(m+1) : ℤ)) := by
-      exact lt_geom_series μ hs
+      exact lt_geom_series S D ε μ hs km hbound
     _ = ε := by exact geomsery ε
   by_cases hsempty : S = ∅
   · use ∅
@@ -404,8 +398,7 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
   exact bigcalc
 
 
--- lemma fivepoint3 {MeasurableSpace X} (MetricSpace X)  (h : IsCompact X) : (inferInstance : TopologicalSpace (LevyProkhorov (ProbabilityMeasure X))) := by
---   sorry
+
 
 -- theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X)]:
 --    (TightProb G) ↔ (IsCompact (closure G)) := by
@@ -413,13 +406,50 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
 --   · sorry
 --   · exact fun a ↦ IsTightFamily_of_isRelativelyCompact G a
 
+abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
+
+abbrev T := P⁻¹' S
+
+lemma Tight_iffProb {S : Set (ProbabilityMeasure X)} (ht : IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S}) :
+  IsCompact (closure S) := by
+  rw [← @Tightprob_iff_Tight] at ht
+  sorry
+
+
+-- variable {G : Type*} [PseudoMetricSpace G] [CompactSpace G] [SeparableSpace G] --[CompleteSpace G]
+
+
+-- noncomputable instance : Norm C(G, ℝ) where
+--   norm f := sSup (Set.range fun x ↦ |f x|)
+
+
+-- noncomputable instance : SeminormedAddCommGroup C(G, ℝ) where
+--   --dist_eq f g := by simp [norm]
+--   dist_self f := by simp only [dist_self]--;rw [sSup_range]; simp
+--   dist_comm f g := by rw [dist_comm]
+--     --rw [←neg_sub];simp only [norm]; congr; ext x; simp_rw [ContinuousMap.neg_apply,abs_neg]
+--   dist_triangle f g h := by exact dist_triangle f g h
+--   dist_eq f := by
+--     intro g; simp [norm]; rw [SeminormedRing.dist_eq]
+
+  --   simp only [norm]; simp; simp_rw [sSup_range]
+  --   have add_sub_zero : (⨆ x, |f x - h x|) = ⨆ x, |(f x - g x) + (g x - h x)| := by
+  --     refine iSup_congr ?_
+  --     simp
+  --   rw [add_sub_zero]; refine Real.iSup_le ?_ ?_
+  --   · intro i; apply (abs_add_le (f i - g i) (g i - h i)).trans
+  --     refine add_le_add ?_ ?_
+  --     · refine le_ciSup_of_le ?_ i ?_
+
+  --     all_goals simp
+
 theorem isTightMeasureSet_iff_isCompact_closure
   {X : Type*} {mX : MeasurableSpace X} [MetricSpace X] [CompleteSpace X]
   [SecondCountableTopology X] [BorelSpace X] {S : Set (ProbabilityMeasure X)} :
     IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S}
       ↔ IsCompact (closure S) := by
       constructor
-      · sorry
+      · exact fun a ↦ Tight_iffProb a
       · refine fun a => (Tightprob_iff_Tight.mp ?_)
         exact IsTightFamily_of_isRelativelyCompact S a
 
