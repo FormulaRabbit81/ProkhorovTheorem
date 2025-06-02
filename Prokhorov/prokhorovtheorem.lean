@@ -61,7 +61,7 @@ lemma tightProb_iff_nnreal {S : Set (ProbabilityMeasure X)} :
   exact fun _ ↦ ⟨∅, isCompact_empty⟩
 
 lemma Tightprob_iff_Tight {S : Set (ProbabilityMeasure X)} : TightProb S ↔ IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S} := by
-  rw [@IsTightMeasureSet_iff_exists_isCompact_measure_compl_le]
+  rw [IsTightMeasureSet_iff_exists_isCompact_measure_compl_le]
   simp [TightProb]
 
 variable [OpensMeasurableSpace X]
@@ -159,7 +159,7 @@ lemma geomsery (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ)) = ε :
 lemma better : ∀ m:ℕ, (2 : NNReal) ^ (-(1:ℤ) + -(m:ℤ)) = 1 / 2 * (1 / 2) ^ m := by
   intro m
   field_simp
-  rw [← @Int.neg_add, zpow_neg]
+  rw [← Int.neg_add, zpow_neg]
   refine (inv_mul_eq_one₀ ?_).mpr ?_
   · refine zpow_ne_zero (1 + m) (by simp)
   · refine zpow_one_add₀ (by simp) m
@@ -183,15 +183,15 @@ lemma lt_geom_series (D : ℕ → X) (ε : ℝ≥0) (μ : ProbabilityMeasure X) 
       intro i hi
       rw [subset_def]
       intro x hx
-      rw [@mem_ball'] at hx
-      rw [@EMetric.mem_closure_iff_infEdist_zero]
+      rw [mem_ball'] at hx
+      rw [EMetric.mem_closure_iff_infEdist_zero]
       refine EMetric.infEdist_zero_of_mem ?_
-      rw [@mem_ball']
+      rw [mem_ball']
       apply hx.trans
       field_simp
       refine (one_div_lt_one_div (by positivity) (by positivity)).mpr (by simp)
     · congr!
-      rw [← @Int.neg_add, @zpow_neg]
+      rw [← Int.neg_add, zpow_neg]
       congr!
       norm_cast
       simp only [Nat.ofNat_pos, ne_eq, OfNat.ofNat_ne_one, not_false_eq_true, pow_right_inj₀]
@@ -215,9 +215,7 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     simp
   simp only [not_isEmpty_iff] at hempty
 
-  -- Introduce ε > 0 for which we need to find a compact set K with μ(K) ≥ 1 - ε for all μ ∈ S
   intro ε εpos
-
   --obtain ⟨φ, hφ₁, hφ₂, hφ₃⟩ := exists_seq_strictAnti_tendsto (0 : ℝ)
   -- For each m ≥ 1, cover X with balls of radius 1/m around points in the dense subset D
   obtain ⟨D, fD⟩ := exists_dense_seq X
@@ -227,9 +225,9 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     constructor
     · exact fun a ↦ trivial
     intro hp
-    have hmdiv : 1 / ((m : ℝ) + 1) > 0 := by
+    have hm_div_pos : 1 / ((m : ℝ) + 1) > 0 := by
       exact Nat.one_div_pos_of_nat
-    specialize fD p (1 / (m+1)) hmdiv
+    specialize fD p (1 / (m+1)) hm_div_pos
     exact mem_iUnion.mpr fD
   have byclaim : ∀ (m : ℕ), ∃ (k : ℕ),∀ μ ∈ S, μ (⋃ i ≤ k, ball (D i) (1 / (m+1))) > 1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
     intro m
@@ -249,11 +247,10 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
   --multiple times inside to satisfy tsum's need to show summability
   -- I had to do it inside the actual proof term because this particular
   -- inequality required all our assumptions to be in scope
-
   have tsumMeasureCompl (μ : ProbabilityMeasure X) : ∑' (m : ℕ), μ.toMeasure (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1))))ᶜ =
   ∑' (m : ℕ), (1 - μ.toMeasure (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1))))) := by
     congr! with m
-    rw [measure_compl ?_ ?_]
+    rw [measure_compl ?_ (by simp)]
     · simp
     · refine Finite.measurableSet_biUnion ?_ ?_
       · simp only [Nat.le_eq]
@@ -261,16 +258,14 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
         refine bddAbove_def.mpr ?_
         use km (m + 1) + 1
         intro y
-        rw [@mem_def]
+        rw [mem_def]
         omega
       · intro b _
         exact measurableSet_closure
-    · simp
   have bigcalc (μ : ProbabilityMeasure X) (hs : μ ∈ S) := calc
     μ.toMeasure (bigK)ᶜ
     _ = μ.toMeasure (⋃ m,(⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) := by
-      simp only [bigK]
-      simp only [compl_iInter, compl_iUnion, bigK]
+      simp only [bigK, compl_iInter, compl_iUnion]
     _ ≤ ∑' m, μ.toMeasure ((⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) := by
       apply measure_iUnion_le
     _ = ∑' m, (1 - μ.toMeasure (⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))) := by
@@ -286,7 +281,7 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       subst hsempty
       simp_all only [isClosed_empty, IsClosed.closure_eq, finite_empty, Finite.isCompact, mem_empty_iff_false,
         not_isEmpty_of_nonempty, iUnion_of_empty, gt_iff_lt, IsEmpty.exists_iff, implies_true, IsEmpty.forall_iff,
-        iInter_of_empty, compl_univ, bigK]
+        iInter_of_empty, compl_univ]
   -- Final proof
   use bigK
   constructor
@@ -302,35 +297,34 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
         · exact finite_singleton x
         simp [δfin]
       apply nonempty_iff_ne_empty'.mpr at hsempty
-      --specialize hempty Classical.choice
       -- t should be image under D of the set of numbers less than km of 1/δ.ceil
       use Set.image D (Finset.Icc 0 (km (⌈1 / δ.toReal⌉₊ + 1)))
       constructor
       · exact toFinite (D '' ↑(Finset.Icc 0 (km (⌈1 / δ.toReal⌉₊ + 1))))
       · simp only [one_div, Finset.coe_Icc, mem_image, mem_Icc, zero_le, true_and, iUnion_exists,
         biUnion_and', iUnion_iUnion_eq_right, bigK]
-        have interthing : ∀ t, ⋂ m, ⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (↑m + 1)⁻¹) ⊆ ⋃ i, ⋃ (_ : i ≤ km (t + 1)), closure (ball (D i) (↑t + 1)⁻¹) := by
+        have intersection_subset_union : ∀ t, ⋂ m, ⋃ i, ⋃ (_ : i ≤ km (m + 1)), closure (ball (D i) (↑m + 1)⁻¹) ⊆ ⋃ i, ⋃ (_ : i ≤ km (t + 1)), closure (ball (D i) (↑t + 1)⁻¹) := by
           exact fun t ↦ iInter_subset_of_subset t fun ⦃a⦄ a ↦ a
-        specialize interthing (⌈δ.toReal⁻¹⌉₊)
-        apply interthing.trans
+        specialize intersection_subset_union (⌈δ.toReal⁻¹⌉₊)
+        apply intersection_subset_union.trans
         gcongr with i hi
         intro x hx
-        rw [@EMetric.mem_ball']
-        rw [@EMetric.mem_closure_iff] at hx
+        rw [EMetric.mem_ball']
+        rw [EMetric.mem_closure_iff] at hx
         let B : ℝ≥0∞ := δ - (↑δ⁻¹ + (1 / 2: ℝ≥0∞))⁻¹
         specialize hx B
         have Bpos : 0 < B := by
           unfold B
           rw [tsub_pos_iff_lt]
           lift δ to ℝ≥0 using δfin
-          suffices ↑((δ:NNReal)⁻¹ + ↑((1:NNReal) / (2:NNReal)))⁻¹ < (δ:ENNReal) by -- shoudln't be necessary
+          suffices ↑((δ:NNReal)⁻¹ + ↑((1:NNReal) / (2:NNReal)))⁻¹ < (δ:ENNReal) by
             convert this using 1
-            push_cast -- cast of inverse equals invers of cast, missing norm_cast/push_cast lemma?
+            push_cast
             simp only [one_div, ne_eq, add_eq_zero, inv_eq_zero, OfNat.ofNat_ne_zero, and_false,
-              not_false_eq_true, coe_inv, coe_add, coe_ofNat, inv_inj, bigK]
+              not_false_eq_true, coe_inv, coe_add, coe_ofNat, inv_inj]
             refine (ENNReal.add_left_inj <| by simp).mpr ?_
             · refine Eq.symm (coe_inv ?_)
-              simp only [gt_iff_lt, ENNReal.coe_pos, bigK] at δpos
+              simp only [gt_iff_lt, ENNReal.coe_pos] at δpos
               exact Ne.symm (ne_of_lt δpos)
           norm_cast at δpos ⊢
           rw [inv_lt_iff_one_lt_mul₀]
@@ -342,55 +336,47 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
           all_goals positivity
         specialize hx Bpos
         obtain ⟨y, hy, hyd⟩ := hx
-        rw [@mem_ball', ← @edist_lt_ofReal] at hy
+        rw [mem_ball', ← edist_lt_ofReal] at hy
         apply lt_of_le_of_lt (edist_triangle _ y _)
         rw [edist_comm] at hyd
-        have greivance_dos : (ENNReal.ofReal (↑⌈δ.toReal⁻¹⌉₊ + 1)⁻¹) = ((⌈δ.toReal⁻¹⌉₊ + 1):ℝ≥0∞)⁻¹ := by
+        have push_coercion : (ENNReal.ofReal (↑⌈δ.toReal⁻¹⌉₊ + 1)⁻¹) = ((⌈δ.toReal⁻¹⌉₊ + 1):ℝ≥0∞)⁻¹ := by
             refine (toReal_eq_toReal_iff' (by simp) (by simp)).mp ?_
             rw [toReal_ofReal]
             simp; norm_cast; positivity
-        rw [greivance_dos] at hy
+        rw [push_coercion] at hy
         have le_sum : edist (D i) y + edist y x < ((↑⌈δ.toReal⁻¹⌉₊ + 1):ℝ≥0∞)⁻¹ + B := by
           exact ENNReal.add_lt_add hy hyd
-        apply le_sum.trans; simp only [one_div, B, bigK]
+        apply le_sum.trans; simp only [one_div, B]
         refine lt_tsub_iff_left.mp ?_
         refine sub_lt_of_sub_lt ?_ ?_ ?_
-        · rw [@inv_le_iff_inv_le]
+        · rw [inv_le_iff_inv_le]
           simp
         · left; exact δfin
         · field_simp
           have subsub : δ - (δ - 1 / (↑⌈1 / δ.toReal⌉₊ + 1)) = 1 / (↑⌈1 / δ.toReal⌉₊ + 1) := by
             refine ENNReal.sub_sub_cancel δfin ?_
-            simp only [one_div, B, bigK]
-            rw [@inv_le_iff_inv_le]
-            refine le_add_of_le_of_nonneg ?_ ?_
+            simp only [one_div]
+            rw [inv_le_iff_inv_le]
+            refine le_add_of_le_of_nonneg ?_ (by simp)
             · refine (toReal_le_toReal ?_ (natCast_ne_top ⌈δ.toReal⁻¹⌉₊)).mp ?_
-              · simp only [ne_eq, inv_eq_top, B, bigK]; exact pos_iff_ne_zero.mp δpos
-              · simp only [toReal_inv, toReal_natCast, B, bigK]
-                have coersion : δ.toReal⁻¹ ≤ ⌈δ.toReal⁻¹⌉₊ := by
-                  exact Nat.le_ceil δ.toReal⁻¹
-                apply coersion.trans; rfl
-            simp
+              · simp only [ne_eq, inv_eq_top]; exact pos_iff_ne_zero.mp δpos
+              · simp only [toReal_inv, toReal_natCast]
+                apply (Nat.le_ceil δ.toReal⁻¹).trans; rfl
           rw [subsub]
-          simp only [one_div, ENNReal.inv_lt_inv, gt_iff_lt, B, bigK]
-          refine ENNReal.add_lt_add_of_le_of_lt ?_ ?_ ?_
+          simp only [one_div, ENNReal.inv_lt_inv, gt_iff_lt]
+          refine ENNReal.add_lt_add_of_le_of_lt ?_ ?_ (by simp)
           · refine inv_ne_top.mpr (Ne.symm (ne_of_lt δpos))
-          · refine (toReal_le_toReal ?_ ?_).mp ?_
-            · refine inv_ne_top.mpr (Ne.symm (ne_of_lt δpos))
-            · simp only [ne_eq, natCast_ne_top, not_false_eq_true, B, bigK]
-            have ceil_cancel : (δ.toReal⁻¹) ≤ ⌈δ.toReal⁻¹⌉₊ := by
-              exact Nat.le_ceil δ.toReal⁻¹
-            apply le_trans _ ceil_cancel
+          · refine (toReal_le_toReal (inv_ne_top.mpr (Ne.symm (ne_of_lt δpos))) ?_).mp ?_
+            · simp only [ne_eq, natCast_ne_top, not_false_eq_true]
+            apply le_trans _ (Nat.le_ceil δ.toReal⁻¹)
             simp
-          simp
     -- Closedness
     · simp only [one_div, bigK]
       refine isClosed_iInter ?_
       intro n
       refine Finite.isClosed_biUnion ?_ ?_
-      · refine Finite.ofFinset ?_ fun x ↦ ?_
-        · exact (Finset.Iic (km (n+1)))
-        · simp only [Finset.mem_Iic, Nat.le_eq, bigK]
+      · refine Finite.ofFinset (Finset.Iic (km (n+1))) fun x ↦ ?_
+        · simp only [Finset.mem_Iic, Nat.le_eq]
           exact Eq.to_iff rfl
       intro i hi
       exact isClosed_closure
@@ -412,7 +398,7 @@ abbrev T := P⁻¹' S
 
 lemma Tight_iffProb {S : Set (ProbabilityMeasure X)} (ht : IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S}) :
   IsCompact (closure S) := by
-  rw [← @Tightprob_iff_Tight] at ht
+  rw [← Tightprob_iff_Tight] at ht
   sorry
 
 
