@@ -1,7 +1,6 @@
 name = "Prokhorov"
 defaultTargets = ["Prokhorov"]
 
-
 [leanOptions]
 autoImplicit = false        # Prevent typos to be interpreted as new free variables
 relaxedAutoImplicit = false
@@ -36,6 +35,7 @@ weak.linter.style.setOption = true
 # linter.style.missingEnd = true
 # linter.style.multiGoal = true
 # linter.style.setOption = true
+
 [[require]]
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4.git"
