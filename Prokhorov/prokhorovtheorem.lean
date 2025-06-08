@@ -135,16 +135,15 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     simp_rw [←Set.accumulate_def]
     exact ProbabilityMeasure.tendsto_measure_iUnion_accumulate
   rw [Cov, coeFn_univ, ←NNReal.tendsto_coe] at accumulation
-  have tends_to_univ : ∀ᶠ n in atTop, μlim (⋃ i ≤ n, U i) ≥ 1 - ε / 2 := by
+  have exceeds_bound : ∀ᶠ n in atTop, μlim (⋃ i ≤ n, U i) ≥ 1 - ε / 2 := by
     apply Tendsto.eventually_const_le (v := 1)
     norm_num; positivity
     exact accumulation
   suffices ∀ᶠ n : ℕ in atTop, False by exact this.exists.choose_spec
-  filter_upwards [tends_to_univ] with n hn
+  filter_upwards [exceeds_bound] with n hn
   have falseity := hn.trans (Measurebound n)
   linarith
 
---#lint unusedHavesSuffices
 lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ = 1 := by
   simp_rw [← inv_pow, pow_succ, _root_.tsum_mul_right, tsum_geometric_inv_two]
   norm_num
@@ -227,17 +226,17 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
   intro ε εpos
   --obtain ⟨φ, hφ₁, hφ₂, hφ₃⟩ := exists_seq_strictAnti_tendsto (0 : ℝ)
   -- For each m ≥ 1, cover X with balls of radius 1/m around points in the dense subset D
-  obtain ⟨D, fD⟩ := exists_dense_seq X
+  obtain ⟨D, hD⟩ := exists_dense_seq X
   have hcov : ∀ m : ℕ, ⋃ i, ball (D i) (1 / (m+1)) = univ := by
-    intro m; rw [denseRange_iff] at fD
+    intro m; rw [denseRange_iff] at hD
     ext p
     constructor
     · exact fun a ↦ trivial
     intro hp
     have hm_div_pos : 1 / ((m : ℝ) + 1) > 0 := by
       exact Nat.one_div_pos_of_nat
-    specialize fD p (1 / (m+1)) hm_div_pos
-    exact mem_iUnion.mpr fD
+    specialize hD p (1 / (m+1)) hm_div_pos
+    exact mem_iUnion.mpr hD
   have byclaim : ∀ (m : ℕ), ∃ (k : ℕ),∀ μ ∈ S, μ (⋃ i ≤ k, ball (D i) (1 / (m+1))) >
   1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
     intro m
