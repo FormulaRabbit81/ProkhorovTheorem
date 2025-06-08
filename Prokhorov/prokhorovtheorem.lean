@@ -335,7 +335,7 @@ lemma Compact_if_tight {S : Set (ProbabilityMeasure X)}
   sorry
 
 
--- variable {G : Type*} [PseudoMetricSpace G] [CompactSpace G] [SeparableSpace G] --[CompleteSpace G]
+-- variable {G : Type*} [PseudoMetricSpace G] [CompactSpace G] [SeparableSpace G] [CompleteSpace G]
 
 
 -- noncomputable instance : Norm C(G, ℝ) where
