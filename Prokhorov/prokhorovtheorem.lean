@@ -127,9 +127,9 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     _ ≤ 1 - ε := by
       apply Filter.liminf_le_of_le
       · use 0; simp
-      · simp only [eventually_atTop, ge_iff_le, forall_exists_index]
-        intro b c h
-        apply le_trans (h c le_rfl) (hcontradiction _)
+      simp only [eventually_atTop, ge_iff_le, forall_exists_index]
+      intro b c h
+      apply le_trans (h c le_rfl) (hcontradiction _)
 
   have accumulation : Tendsto (fun n => μlim (⋃ i ≤ n, U i)) atTop (𝓝 (μlim (⋃ i, U i))) := by
     simp_rw [←Set.accumulate_def]
@@ -207,7 +207,7 @@ lemma lt_geom_series (D : ℕ → X) (ε : ℝ≥0) (μ : ProbabilityMeasure X) 
   · simp
 
 -- set_option diagnostics true in
-theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
+theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     TightProb S := by
   rw [tightProb_iff_nnreal]
   by_cases hempty : IsEmpty X
@@ -321,7 +321,7 @@ theorem IsTightFamily_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
 --    (TightProb G) ↔ (IsCompact (closure G)) := by
 --   constructor
 --   · sorry
---   · exact fun a ↦ IsTightFamily_of_isRelativelyCompact G a
+--   · exact fun a ↦ IsTight_of_isRelativelyCompact G a
 
 abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
 
@@ -368,7 +368,7 @@ theorem isTightMeasureSet_iff_isCompact_closure
       ↔ IsCompact (closure S) := by
       constructor
       · exact fun a ↦ Compact_if_tight a
-      · exact fun a => (Tightprob_iff_Tight.mp (IsTightFamily_of_isRelativelyCompact S a))
+      · exact fun a => (Tightprob_iff_Tight.mp (IsTight_of_isRelativelyCompact S a))
 
 
 end section
