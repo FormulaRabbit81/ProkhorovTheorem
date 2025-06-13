@@ -38,10 +38,11 @@ open Topology Metric Filter Set ENNReal NNReal MeasureTheory.ProbabilityMeasure 
 def IsTightMeasureSet (S : Set (Measure G)) : Prop :=
   Tendsto (⨆ μ ∈ S, μ) (cocompact G).smallSets (𝓝 0)
 
-variable (S : Set <| Measure G)
+variable (S : Set <| ProbabilityMeasure G)
 --Useful version
 lemma IsTightMeasureSet_iff_exists_isCompact_measure_compl_le :
-    IsTightMeasureSet S ↔ ∀ ε, 0 < ε → ∃ K : Set G, IsCompact K ∧ ∀ μ ∈ S, μ (Kᶜ) ≤ ε := by sorry
+    IsTightMeasureSet {((μ : ProbabilityMeasure G) : Measure G) | μ ∈ S} ↔
+    ∀ (ε : ENNReal), 0 < ε → ∃ K : Set G, IsCompact K ∧ ∀ μ ∈ S, μ (Kᶜ) ≤ ε := by sorry
 
 
 def TightProb (S : Set (ProbabilityMeasure G)) : Prop :=
@@ -131,10 +132,22 @@ lemma ENNreal_ProbMeasure_toMeasure (μ : ProbabilityMeasure G) (A : Set G) :
     μ.toMeasure A = ((μ A) : ENNReal) := by
     exact Eq.symm (ennreal_coeFn_eq_coeFn_toMeasure μ A)
 
-/-One direction is trivial-/
+variable [MeasurableSpace X] [MeasurableSpace Y] (μ : ProbabilityMeasure G) (ν : ProbabilityMeasure Y)
+  (Ψ : G → Y) (hΨ : AEMeasurable Ψ μ)
+
+/-Needs sorting once format of Y is sorted-/
+lemma conc_mass : ∃ (C : Set Y), ν(C) = 1 := by sorry
+
+
+-- lemma define_μn (μn : ℕ → ProbabilityMeasure G) (hμn : ∀ n, μn n ∈ S)(T : X → Y) (ht : IsEmbedding T) : ∃ (νn : ℕ → ProbabilityMeasure Y),
+--       ∀ n, νn n = (μn n).map hΨ := by sorry
+
+-- lemma concentrated_mass (μn : ℕ → ProbabilityMeasure G) (hμn : ∀ n, μn n ∈ S) (T : X → Y) (ht : IsEmbedding T): ∃ (C : Y), ν(C) = 1 := by sorry
+
+
 
 variable [T2Space G]
-
+/-One direction is trivial-/
 lemma Tight_closure_iff_tight (S : Set (ProbabilityMeasure G)):
   IsTightMeasureSet {((μ : ProbabilityMeasure G) : Measure G) | μ ∈ S} ↔
   TightProb (closure S) := by
@@ -143,10 +156,9 @@ lemma Tight_closure_iff_tight (S : Set (ProbabilityMeasure G)):
     intro ε εpos; specialize hε ε εpos; obtain ⟨K,hkCompact,hbound⟩ := hε
     use K; constructor
     · exact hkCompact
-    intro μ hμ; simp at hμ
-    obtain ⟨p,hp,hpμ⟩ := hμ
-    specialize hbound p <| subset_closure hp
-    rw [←hpμ]; exact hbound
+    intro μ hμ; specialize hbound μ <| subset_closure hμ
+    rw [←ENNreal_ProbMeasure_toMeasure]
+    exact hbound
   intro ht
   simp [TightProb]; intro ε hε
   rw [← Tightprob_iff_Tight, TightProb] at ht
@@ -191,11 +203,20 @@ lemma Compact_if_tight {S : Set (ProbabilityMeasure G)}
   · simp_all only [isEmpty_coe_sort, isClosed_empty, IsClosed.closure_eq,
     finite_empty, Finite.isCompact]
   rw [not_isEmpty_iff] at hempty
-  rw [@IsTightMeasureSet_iff_exists_isCompact_measure_compl_le] at ht
+  rw [Tight_closure_iff_tight, TightProb] at ht
   obtain ⟨μ , hμ⟩ := hempty
   have tightness (ε : ENNReal) (hε : ε > 0):
-    ∃ (K : Set G), IsCompact K ∧ μ K ≥ 1 - ε := by
+    ∃ (K : Set G), IsCompact K ∧ μ Kᶜ ≤ ε := by
     specialize ht ε hε
     simp at ht
-    sorry
+    obtain ⟨K,l,r⟩ := ht
+    specialize r μ hμ
+    use K
+    constructor
+    all_goals simpa
+
   sorry
+
+end
+end MeasureTheory
+

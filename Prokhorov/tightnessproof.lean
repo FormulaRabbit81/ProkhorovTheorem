@@ -66,6 +66,7 @@ lemma Tightprob_iff_Tight {S : Set (ProbabilityMeasure X)} :
 
 variable [OpensMeasurableSpace X]
 
+
 lemma meas_compl_thang (μ : ProbabilityMeasure X) (km : ℕ → ℕ) (m:ℕ) (D : ℕ → X) :
     μ (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1)))) +
     μ (⋃ i ≤ km (m + 1), closure (ball (D i) (1 / (↑m + 1))))ᶜ = 1 := by
@@ -144,13 +145,15 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
   have falseity := hn.trans (Measurebound n)
   linarith
 
+/-Kevin Golfed this for me!-/
 lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ = 1 := by
   simp_rw [← inv_pow, pow_succ, _root_.tsum_mul_right, tsum_geometric_inv_two]
   norm_num
 
 variable [CompleteSpace X]
 
-lemma geomsery (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ)) = ε := by
+/-Kevin Golfed this for me!-/
+lemma truncated_geom_series (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ)) = ε := by
   rw [ENNReal.tsum_mul_left]
   nth_rw 2 [←mul_one (a :=ε)]
   congr
@@ -283,7 +286,7 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       exact tsumMeasureCompl μ
     _ ≤ (∑' (m : ℕ), (ε : ENNReal) * 2 ^ (-(m+1) : ℤ)) := by
       exact lt_geom_series S D ε μ hs km hbound
-    _ = ε := by exact geomsery ε
+    _ = ε := by exact truncated_geom_series ε
   -- Final proof
   use bigK
   constructor
@@ -316,12 +319,6 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
   simp_rw [ENNreal_ProbMeasure_toMeasure, ENNReal.coe_le_coe] at bigcalc
   exact bigcalc
 
-
--- theorem Prokhorov (G : Set (ProbabilityMeasure X)) [PseudoMetricSpace (Measure X)]:
---    (TightProb G) ↔ (IsCompact (closure G)) := by
---   constructor
---   · sorry
---   · exact fun a ↦ IsTight_of_isRelativelyCompact G a
 
 abbrev P := LevyProkhorov.equiv (ProbabilityMeasure X)
 
