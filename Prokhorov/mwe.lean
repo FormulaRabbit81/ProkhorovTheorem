@@ -1,67 +1,28 @@
-import Mathlib.Analysis.NormedSpace.FunctionSeries
-import Mathlib.Analysis.SpecificLimits.Basic
+import Mathlib
 
-section MetricSpace
-open TopologicalSpace Classical Filter Function Topology
+open TopologicalSpace Classical Filter Set Topology
 
-variable [MetricSpace X] [SeparableSpace X]
+variable {X : Type*} [MetricSpace X] [SeparableSpace X] [Nonempty X]
+--Note we need to handle the empty case sometime too
 
-lemma isEmbedding_toPiNat (continuous_f : ∀ n, Continuous (f n))
-    (separating_f : Pairwise fun x y ↦ ∃ n, f n x ≠ f n y) :
-    IsEmbedding (toPiNat : X → PiNatEmbed X Y f) := by
-  letI metspace := metricSpace separating_f
-  rw [isEmbedding_iff, isInducing_iff_nhds]
-  refine ⟨fun x ↦ ((continuous_toPiNat continuous_f).tendsto x).le_comap.antisymm ?_,
-    (toPiNatEquiv X Y f).injective⟩
-  simp_rw [Filter.le_def, mem_nhds_iff]
-  rintro S ⟨ε, hε, hεs⟩
-  refine ⟨ofPiNat ⁻¹' S, ?_, .rfl⟩
-  by_cases hempt : IsEmpty X
-  · refine preimage_nhds_coinduced ?_
-    simp
-    rw [← Set.singleton_subset_iff]
-    have klj : {x} ⊆ ball x ε := by
-      simp only [Set.singleton_subset_iff, mem_ball, dist_self]
-      exact hε
-    exact klj.trans hεs -- Empty case
-  rw [not_isEmpty_iff] at hempt
-  --let D : ℕ → X := choose (exists_dense_seq X)
-  --let α : ℕ → X → ℝ := fun n x => min (dist x <| D n) 1
-  refine ContinuousAt.preimage_mem_nhds ?_ ?_
-  · refine Continuous.continuousAt ?_
-    refine SeqContinuous.continuous ?_
-    intro Tn limTn hconvTn
+--def Z n := ℕ → Icc (0:ℝ) 1
+--lemma compactness : CompactSpace (ℕ → Icc 0 1) := compactSpace
 
+noncomputable section
+def D : ℕ → X := choose (exists_dense_seq X)
 
-    --from continuity of f? No
-  simp
-  rw [mem_nhds_iff]
-  use ε
+variable (X) in
+def T_func : ℕ → X → Icc (0:ℝ) 1 := fun n x ↦
+  projIcc (0:ℝ) 1 zero_le_one (dist x (D n))
 
-  --simp [ofPiNat];
-  --rw [@mem_nhds_iff];
-  -- refine eventually_nhds_iff_ball.mp ?_
-  -- rw [eventually_iff_seq_eventually]
-  -- intro zn htendszn
-  -- refine tendsto_principal.mp ?_
-  -- have Function.injective f := by
+instance what : TopologicalSpace (Icc (0:ℝ) 1)  := instTopologicalSpaceSubtype
+instance whatt : TopologicalSpace X := UniformSpace.toTopologicalSpace
 
+lemma continuous_T (n : ℕ): Continuous (T_func X n) := by
+  sorry
 
-  -- use 2 * ε; constructor
-  --· norm_num; exact hε
-  --refine Set.image_subset_iff.mp ?_
+lemma separating_T : Pairwise fun x y ↦ ∃ n, T_func X n x ≠ T_func X n y := by sorry
 
-
-  by_contra!
-
-
-  rw [Metric]
-  refine ⟨fun x ↦ ?_, (toPiNatEquiv X Y f).injective⟩
-
-
-  rw [isHomeomorph_iff_continuous_bijective]
-  exact ⟨continuous_toPiNat continuous_f, (toPiNatEquiv X Y f).bijective⟩
-
-end MetricSpace
-end MetricSpace
-end Metric.PiNatEmbed
+-- lemma isEmbedding_toPiNaticc :
+--     IsEmbedding (toPiNat : X → PiNatEmbed X (fun n => Icc 0 1) T_func) := by
+--     sorry

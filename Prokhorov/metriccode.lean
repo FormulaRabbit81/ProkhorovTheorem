@@ -196,8 +196,9 @@ noncomputable abbrev emetricSpace (separating_f : Pairwise fun x y ↦ ∃ n, f 
 
 end EMetricSpace
 
+open Set
 section MetricSpace
-variable [∀ n, MetricSpace (Y n)]
+variable [∀ n, MetricSpace (Y n)] --{Z : ℕ → Icc 0 1}
 
 /-- If the functions `f n : X → Y n` separate points of `X`, then `X` can be embedded into
 `∀ n, Y n`. -/
@@ -230,8 +231,93 @@ end CompactSpace
 
 open TopologicalSpace Classical Filter
 
-variable [MetricSpace X] [SeparableSpace X]
-#check Metric.infDist
+variable [MetricSpace X] [SeparableSpace X] [Nonempty X]
+--Note we need to handle the empty case sometime too
+
+--def Z n := ℕ → Icc (0:ℝ) 1
+--lemma compactness : CompactSpace (ℕ → Icc 0 1) := compactSpace
+
+noncomputable section
+def D : ℕ → X := choose (exists_dense_seq X)
+
+--variable (X) in
+lemma dense_range_D : DenseRange (D : ℕ → X) := by
+  rw [denseRange_iff_closure_range]
+  exact denseRange_iff_closure_range.mp <| choose_spec (exists_dense_seq X)
+
+variable (X) in
+def T_func : ℕ → X → Icc (0:ℝ) 1 := fun n x ↦
+  projIcc (0:ℝ) 1 zero_le_one (dist x (D n))
+
+lemma continuous_T (n : ℕ) : Continuous (T_func X n) := by
+  exact continuous_projIcc.comp <| Continuous.dist continuous_id' continuous_const
+
+lemma separation (x : X) (C : Set X) (hC : IsClosed C) (hnC : Nonempty C) (hx : x ∉ C) :
+  ∃ (ε : ℝ) (i : ℕ), 0 < ε ∧ T_func X i x ≤ ε / 3 ∧ ∀ y ∈ C, (T_func X i y) ≥ 2 * ε / 3 := by
+  let bigg_eps : ℝ := min (infDist x C) 1
+  have big_pos : bigg_eps / 3 > 0 := by
+    simp [bigg_eps]
+    refine (IsClosed.notMem_iff_infDist_pos hC Nonempty.of_subtype).mp hx
+  have : DenseRange (D : ℕ → X) := dense_range_D
+  have suff_i : ∃ i, dist x (D i)  < bigg_eps / 3 := by
+    rw [denseRange_iff] at this
+    exact this x (bigg_eps / 3) big_pos
+  obtain ⟨i, hi⟩ := suff_i
+  use bigg_eps, i
+  constructor
+  · simp [bigg_eps]; refine (IsClosed.notMem_iff_infDist_pos hC Nonempty.of_subtype).mp hx
+  constructor
+  · simp [T_func]
+    rw [@coe_projIcc]; simp; constructor
+    · exact le_of_lt big_pos
+    right; exact le_of_lt hi
+  intro y hy
+  simp [T_func]
+  rw [@coe_projIcc]
+  simp; right; constructor
+  · ring_nf
+    have ineq : min (infDist x C) 1 ≤ 1 := by simp
+    refine mul_le_one₀ ineq (by positivity) (by linarith)
+  calc
+    dist y (D i) ≥ dist x y - dist x (D i) := by
+      simp; rw [add_comm]; exact dist_triangle_right x y (D i)
+    _ ≥ infDist x C - bigg_eps / 3 := by
+      refine tsub_le_tsub (infDist_le_dist_of_mem hy) (le_of_lt hi)
+    _ ≥ 2 * bigg_eps / 3 := by
+      have joe_mama : (infDist x C) ≥ bigg_eps := by simp [bigg_eps]
+      rw [ge_iff_le, le_sub_iff_add_le']
+      apply le_trans _ joe_mama
+      ring_nf; rfl
+
+
+lemma injective_T : Pairwise fun x y ↦ ∃ n, T_func X n x ≠ T_func X n y := by
+  intro x y hxy
+  let singleton_y : Set X := {y}
+  obtain ⟨ε, n, hεpos, lilbound, bigbound⟩ := separation x singleton_y (isClosed_singleton)
+    (instNonemptyOfInhabited) (hxy)
+  use n; specialize bigbound y rfl
+  refine Subtype.coe_ne_coe.mp <| ne_of_lt ?_
+  apply lilbound.trans_lt
+  apply gt_of_ge_of_gt bigbound; linarith
+
+-- def T' : ℕ → X → Icc (0 : ℝ) 1 :=
+--   --obtain ⟨d : Set X,a,b⟩ := exists_countable_dense X
+--   fun n x => min (dist x <| D n) 1
+
+lemma isEmbedding_toPiNaticc :
+    IsEmbedding (toPiNat : X → PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X)) := by
+      rw [isEmbedding_iff, isInducing_iff_nhds]
+      refine ⟨fun x ↦ ((continuous_toPiNat continuous_T).tendsto x).le_comap.antisymm ?_,
+    (toPiNatEquiv X (fun n => Icc (0:ℝ) 1) (T_func X)).injective⟩
+      simp_rw [Filter.le_def, mem_nhds_iff]
+      rintro S ⟨ε, hε, hεs⟩
+      refine ⟨ofPiNat ⁻¹' S, ?_, .rfl⟩
+      
+    -- rw [isEmbedding_iff]; constructor
+    -- · rw [@isInducing_iff_nhds]
+
+
+
 lemma isEmbedding_toPiNat (continuous_f : ∀ n, Continuous (f n))
     (separating_f : Pairwise fun x y ↦ ∃ n, f n x ≠ f n y) :
     IsEmbedding (toPiNat : X → PiNatEmbed X Y f) := by
@@ -251,13 +337,17 @@ lemma isEmbedding_toPiNat (continuous_f : ∀ n, Continuous (f n))
       exact hε
     exact klj.trans hεs -- Empty case
   rw [not_isEmpty_iff] at hempt
-  obtain ⟨p⟩ := hempt
+  --obtain ⟨p⟩ := hempt
+  let D : ℕ → X := choose (exists_dense_seq X)
   have sdlsfdkn (C : Set X) (hC : IsClosed C) (hx : x ∉ C) :
     ∃ (ε : ℝ) (i : ℕ), 0 < ε ∧ ∀ y ∈ C, dist (f i x) (f i y) ≥ ε / 3 := by
-    use min (Metric.infDist x (c ∈ C) 1)
+    use min (Metric.infDist x C) 1
+    constructor
+    have what : ∃ i,
+
     sorry
 
-  --let D : ℕ → X := choose (exists_dense_seq X)
+
   --let α : ℕ → X → ℝ := fun n x => min (dist x <| D n) 1
   refine ContinuousAt.preimage_mem_nhds ?_ ?_
   · refine Continuous.continuousAt ?_
