@@ -303,6 +303,156 @@ lemma injective_T : Pairwise fun x y ↦ ∃ n, T_func X n x ≠ T_func X n y :=
 -- def T' : ℕ → X → Icc (0 : ℝ) 1 :=
 --   --obtain ⟨d : Set X,a,b⟩ := exists_countable_dense X
 --   fun n x => min (dist x <| D n) 1
+variable (A : Type*) [TopologicalSpace A]
+
+-- lemma IsInducingSeq (F : X → A) (hb : Bijective F) (hfor : SeqContinuous F) (hypo : ∀ (xn : ℕ → X) (x : X), Tendsto xn atTop (𝓝 x) ↔ Tendsto (F ∘ xn) atTop (𝓝 <| F x)) : IsHomeomorph F := by --(hback : SeqContinuous F ⁻¹)
+--   rw [isHomeomorph_iff_exists_inverse]
+--   refine ⟨?_,?_,?_,?_,?_⟩
+--   · exact SeqContinuous.continuous hfor
+--   ·
+
+--Will need to specialize this to embedding
+
+-- variable (Z : Type*) [TopologicalSpace Z]
+-- lemma isEmbedding_iff_exists_inverse (g : X → Z) : IsEmbedding g ↔ Continuous g ∧ ∃ h : Z → X,--g '' (univ)
+--     LeftInverse h g ∧ RightInverse h g  ∧ Continuous h := by
+--   refine ⟨fun hf ↦ ⟨hf.continuous, ?_⟩, fun ⟨hf, h, hg⟩ ↦ ?_⟩
+--   have : IsHomeomorph g := by
+--     refine isHomeomorph_iff_isEmbedding_surjective.mpr ?_
+--     constructor
+
+-- theorem exists_strictMono_subsequence {P : ℕ → Prop} (h : ∀ N, ∃ n ≥ N, P n) :
+--     ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∀ n, P (φ n) := by
+--   have : NoMaxOrder {n // P n} := by
+--     refine { exists_gt := ?_ }
+--     simp
+--     intro a Pa
+--     specialize h a
+
+--     ⟨fun n ↦ Exists.intro ⟨(h n.1).choose, (h n.1).choose_spec.2⟩ (h n.1).choose_spec.1⟩
+--   obtain ⟨f, hf, _⟩ := Nat.exists_strictMono' (⟨(h 0).choose, (h 0).choose_spec.2⟩ : {n // P n})
+--   exact Exists.intro (fun n ↦ (f n).1) ⟨hf, fun n ↦ (f n).2⟩
+
+--   · sorry
+--   -- · let l := hf.embedding g
+--   --   exact ⟨h.symm, h.left_inv, h.right_inv, h.continuous_invFun⟩
+--   · exact (Homeomorph.mk ⟨g, h, hg.1, hg.2.1⟩ hf hg.2.2).isHomeomorph
+example (S : Set X) (a : X) (ha : a ∈ S) : a ∈ closure S := by
+
+theorem homeothingamajig : ∃ fonction : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbedding fonction := by
+  have firststep : X ≃ₜ PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) := {
+    toFun := toPiNatEquiv X (fun n => Icc (0:ℝ) 1) (T_func X)
+    invFun := ofPiNat
+    left_inv _ := rfl
+    right_inv _ := rfl
+    continuous_toFun := by
+      simp [toPiNatEquiv]
+      refine continuous_toPiNat ?_; intro n
+      exact continuous_T n
+    continuous_invFun := by
+      refine SeqContinuous.continuous ?_
+      intro txn tx h_conv_txn
+      --apply (tendsto_of_subseq_tendsto)
+      by_contra! hdoesnt
+      rw [tendsto_atTop'] at hdoesnt
+      simp only [gt_iff_lt, ge_iff_le, comp_apply, not_forall, not_exists,
+        not_lt] at hdoesnt
+      obtain ⟨ε,εpos,hwhat⟩ := hdoesnt
+      simp at hwhat
+      --rw [←Filter.frequently_atTop'] at hwhat
+      change ∀ (N : ℕ), ∃ n > N, ε ≤ dist (txn n).ofPiNat tx.ofPiNat at hwhat
+      obtain ⟨subseq,hmonosubseq,hsepsubseq⟩ := Nat.exists_strictMono_subsequence hwhat
+      have sep : tx.ofPiNat ∉ (closure <| Set.range (fun n => (txn <| subseq n).ofPiNat)) := by
+        refine (infDist_pos_iff_notMem_closure (range_nonempty fun n ↦ (txn (subseq n)).ofPiNat)).mpr ?_
+        rw [infDist_eq_iInf]
+        apply lt_of_lt_of_le εpos
+        refine (le_ciInf_set_iff (range_nonempty fun n ↦ (txn (subseq n)).ofPiNat) ?_).mpr ?_
+        · refine bddBelow_def.mpr ?_
+          use 0
+          simp; exact fun a ↦ dist_nonneg
+        · simp; refine fun a ↦ by rw [dist_comm]; exact hsepsubseq a
+      have clos : IsClosed (closure <| Set.range (fun n => (txn <| subseq n).ofPiNat)) := isClosed_closure
+      have nonemp : Nonempty <| (closure <| Set.range (fun n => (txn <| subseq n).ofPiNat)) := by
+        rw [@nonempty_coe_sort, closure_nonempty_iff]; exact range_nonempty fun n ↦ (txn (subseq n)).ofPiNat
+      obtain ⟨δ,i,δpos,hlineq,hgreq⟩ := separation tx.ofPiNat (closure <| Set.range (fun n => (txn <| subseq n).ofPiNat)) clos nonemp sep
+      rw [tendsto_atTop] at h_conv_txn
+      specialize h_conv_txn (2 * δ / 3) (by positivity)
+      rw [← eventually_atTop,eventually_iff_seq_eventually] at h_conv_txn
+      specialize h_conv_txn subseq <| StrictMono.tendsto_atTop hmonosubseq
+      simp at h_conv_txn
+      obtain ⟨a,hb⟩ := h_conv_txn
+      specialize hb (a+1) (Nat.le_add_right a 1)
+      have rangeclosure : (txn (subseq (a + 1))).ofPiNat ∈ closure (range fun n ↦ (txn (subseq n)).ofPiNat) := by
+        apply subset_closure
+        exact mem_range_self (a + 1)
+      specialize hgreq (txn <| subseq (a+1)).ofPiNat rangeclosure
+      
+
+
+  }
+  sorry
+
+theorem homeothing : ∃ fonction : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbedding fonction := by
+  have firststep : X ≃ₜ PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) := {
+    toFun := toPiNatEquiv X (fun n => Icc (0:ℝ) 1) (T_func X)
+    invFun := ofPiNat
+    left_inv _ := rfl
+    right_inv _ := rfl
+    continuous_toFun := by
+      simp [toPiNatEquiv]
+      refine continuous_toPiNat ?_; intro n
+      exact continuous_T n
+    continuous_invFun := by
+      refine SeqContinuous.continuous ?_
+      intro txn tx h_conv_txn
+      apply (tendsto_of_subseq_tendsto)
+      --1. all subsequences converge to tx.ofPiNat
+      --
+      intro subseq hsubseqinfty
+      use id
+      by_contra! hdoesnt
+      simp at hdoesnt
+      have sep : tx.ofPiNat ∉ (closure <| range (fun n => (txn (subseq n)).ofPiNat)) := by
+        rw [tendsto_atTop] at hdoesnt
+        simp at hdoesnt
+        obtain ⟨ε,εpos,hwhat⟩ := hdoesnt; specialize hwhat 0
+        obtain ⟨n,npos,hwhat1⟩ := hwhat
+        sorry
+      have clos : IsClosed (closure <| Set.range (fun n => (txn (subseq n)).ofPiNat)) := isClosed_closure
+      have nonemp : Nonempty <| (closure <| Set.range (fun n => (txn (subseq n)).ofPiNat)) := by
+        rw [@nonempty_coe_sort, closure_nonempty_iff]; exact range_nonempty fun n ↦ (txn (subseq n)).ofPiNat
+      have fromclaim : ∃ (ε : ℝ) (i : ℕ), 0 < ε ∧ T_func X i (tx.ofPiNat) ≤ ε / 3 ∧ ∀ y ∈ (closure <| Set.range (fun n => (txn (subseq n)).ofPiNat)), (T_func X i y) ≥ 2 * ε / 3 := by
+        exact separation tx.ofPiNat (closure <| Set.range (fun n => (txn (subseq n)).ofPiNat)) clos nonemp sep
+
+      obtain ⟨ε,i,εpos,lineq,gineq⟩ := fromclaim
+      sorry
+      --have sub : ∃ (subsequence : ℕ → ℕ), tx.ofPiNat ∉ (ofPiNat ∘ txn ∘ subsequence) '' _ := by sorry
+      -- rw [Filter.not_tendsto_iff_exists_frequently_notMem] at this
+      -- obtain ⟨s, hs_neighbourhood, hs_not_conv⟩ := this
+      -- rw [frequently_iff_forall_eventually_exists_and] at hs_not_conv
+      --obtain ⟨a⟩ := hs_not_conv
+      --rw [frequently_atTop] at hs_not_conv
+
+
+      --specialize hs_not_conv 3
+      --obtain ⟨b, hb, not_conv⟩ := hs_not_conv
+
+  } --refine toPiNatHomeo X ?_ ?_
+
+  have secondstep : IsEmbedding (T_func X : (ℕ → X → Icc (0:ℝ) 1)) := by sorry
+  sorry
+
+lemma IsInducingSeq (hb : Bijective (T_func X)) (hfor : SeqContinuous (T_func X)) : IsHomeomorph (T_func X) := by --(hback : SeqContinuous F ⁻¹) (hypo : ∀ (xn : ℕ → X) (x : X), Tendsto xn atTop (𝓝 x) ↔ Tendsto ((T_func X) ∘ xn) atTop (𝓝 <| F x))
+  rw [isHomeomorph_iff_exists_inverse] --Need a version of this for embeddings
+  refine ⟨?_,?_,?_,?_,?_⟩
+  · exact SeqContinuous.continuous hfor
+  sorry
+  sorry
+  sorry
+  sorry
+
+
+instance : SequentialSpace <| PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) := FrechetUrysohnSpace.to_sequentialSpace
 
 lemma isEmbedding_toPiNaticc :
     IsEmbedding (toPiNat : X → PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X)) := by
@@ -318,7 +468,8 @@ lemma isEmbedding_toPiNaticc :
     use toPiNat '' S
     constructor
     rw [@mem_nhds_iff]
-    
+
+
 
 
   -- rw [isEmbedding_iff, isInducing_iff_nhds]
