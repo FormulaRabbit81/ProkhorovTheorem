@@ -101,7 +101,8 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
       have := ProbabilityMeasure.le_liminf_measure_open_of_tendsto hμconverges hopen
       simp only [Function.comp_apply, ← ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure,
       ennreal_coeFn_eq_coeFn_toMeasure] at this
-      rw [toReal_liminf]; norm_cast
+      rw [toReal_liminf]
+      norm_cast
       simp_rw [←ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure] at this
       rw [←ofNNReal_liminf] at this; norm_cast at this
       use 1
@@ -117,13 +118,14 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
         refine (μ (sub b)).apply_mono
         <| Set.biUnion_mono (fun i (hi : i ≤ n) ↦ hi.trans ?_) fun _ _ ↦ le_rfl
         apply le_trans (Nat.le_add_right n 1) (le_trans hypo (StrictMono.le_apply hsubmono))
-      · simp only [autoParam, ge_iff_le, isBoundedUnder_ge_toReal]
-        use 0; simp
+      · simp only [autoParam, ge_iff_le, isBoundedUnder_ge_toReal]; use 0; simp
       · simp only [autoParam, ge_iff_le, isCoboundedUnder_ge_toReal]
-        use 1; simp only [eventually_map, eventually_atTop, ge_iff_le, forall_exists_index]
+        use 1
+        simp only [eventually_map, eventually_atTop, ge_iff_le, forall_exists_index]
         intro a d hyp
         specialize hyp d (by simp)
-        apply hyp.trans; norm_cast
+        apply hyp.trans
+        norm_cast
         exact ProbabilityMeasure.apply_le_one (μ (sub d)) (⋃ i ≤ sub d, U i)
     _ ≤ 1 - ε := by
       apply Filter.liminf_le_of_le
@@ -163,8 +165,7 @@ lemma truncated_geom_series (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) :
   norm_num; rw [ENNReal.inv_mul_cancel]
   all_goals norm_num
 
-lemma rearrange : ∀ m:ℕ, (2 : NNReal) ^ (-(1:ℤ) + -(m:ℤ)) = 1 / 2 * (1 / 2) ^ m := by
-  intro m
+lemma rearrange (m : ℕ) : (2 : NNReal) ^ (-(1 : ℤ) + (-m : ℤ)) = 1 / 2 * (1 / 2) ^ m := by
   field_simp
   rw [← Int.neg_add, zpow_neg]
   refine (inv_mul_eq_one₀ ?_).mpr ?_
@@ -194,13 +195,12 @@ lemma lt_geom_series (D : ℕ → X) (ε : ℝ≥0) (μ : ProbabilityMeasure X) 
       intro i hi
       rw [subset_def]
       intro x hx
-      rw [mem_ball'] at hx
       rw [EMetric.mem_closure_iff_infEdist_zero]
       refine EMetric.infEdist_zero_of_mem ?_
-      rw [mem_ball']
+      rw [mem_ball'] at hx ⊢
       apply hx.trans
       field_simp
-      refine (one_div_lt_one_div (by positivity) (by positivity)).mpr (by simp)
+      exact (one_div_lt_one_div (by positivity) (by positivity)).mpr (by simp)
     · congr!
       rw [← Int.neg_add, zpow_neg]
       congr!
@@ -219,40 +219,24 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     constructor
     · exact isCompact_empty
     intro μ hμ
-    rw [← univ_eq_empty_iff] at hempty
+    rw [←univ_eq_empty_iff] at hempty
     rw [←hempty]
     simp_all only [univ_eq_empty_iff, compl_univ]
     rw [← ENNReal.coe_le_coe]
     simp
   simp only [not_isEmpty_iff] at hempty
-
   intro ε εpos
-  --obtain ⟨φ, hφ₁, hφ₂, hφ₃⟩ := exists_seq_strictAnti_tendsto (0 : ℝ)
-  -- For each m ≥ 1, cover X with balls of radius 1/m around points in the dense subset D
   obtain ⟨D, hD⟩ := exists_dense_seq X
   have hcov : ∀ m : ℕ, ⋃ i, ball (D i) (1 / (m+1)) = univ := by
     intro m; rw [denseRange_iff] at hD
     ext p
-    constructor
-    · exact fun a ↦ trivial
-    intro hp
-    have hm_div_pos : 1 / ((m : ℝ) + 1) > 0 := by
-      exact Nat.one_div_pos_of_nat
-    specialize hD p (1 / (m+1)) hm_div_pos
-    exact mem_iUnion.mpr hD
+    exact ⟨fun a ↦ trivial, fun _ ↦ mem_iUnion.mpr <| hD p (1 / (m+1)) Nat.one_div_pos_of_nat⟩
   have byclaim : ∀ (m : ℕ), ∃ (k : ℕ),∀ μ ∈ S, μ (⋃ i ≤ k, ball (D i) (1 / (m+1))) >
   1 - (ε * 2 ^ (-m : ℤ) : ℝ) := by
     intro m
     let ε' :=  (ε : ℝ) * 2 ^ (-m : ℤ)
-    apply (MeasOpenCoverTendstoMeasUniv (S := S) (U := fun i => ball (D i) (1 / (m+1)))
-    (ε := ε') (heps := _))
-    · intro i
-      exact isOpen_ball
-    · exact hcomp
-    · exact hcov m
-    · intro h _
-      positivity
-
+    exact (MeasOpenCoverTendstoMeasUniv (S := S) (U := fun i => ball (D i) (1 / (m+1)))
+    (ε := ε')) (heps := (by positivity)) (fun _ ↦ isOpen_ball) hcomp (hcov m)
   choose! km hbound using id byclaim
   simp_all only [zpow_neg, zpow_natCast]
   let bigK := ⋂ m, ⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1)))
@@ -266,16 +250,13 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     congr! with m
     rw [measure_compl ?_ (by simp)]
     · simp
-    · refine Finite.measurableSet_biUnion ?_ ?_
+    · refine Finite.measurableSet_biUnion ?_ (fun _ _ ↦ measurableSet_closure)
       · simp only [Nat.le_eq]
-        refine BddAbove.finite ?_
-        refine bddAbove_def.mpr ?_
+        refine BddAbove.finite <| bddAbove_def.mpr ?_
         use km (m + 1) + 1
         intro y
         rw [mem_def]
         omega
-      · intro b _
-        exact measurableSet_closure
   have bigcalc (μ : ProbabilityMeasure X) (hs : μ ∈ S) := calc
     μ.toMeasure (bigK)ᶜ
     _ = μ.toMeasure (⋃ m,(⋃ (i ≤ km (m+1)), closure (ball (D i) (1 / (m+1))))ᶜ) := by
@@ -310,12 +291,10 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     · simp only [one_div, bigK]
       refine isClosed_iInter ?_
       intro n
-      refine Finite.isClosed_biUnion ?_ ?_
+      refine Finite.isClosed_biUnion ?_ (fun _ _ ↦ isClosed_closure)
       · refine Finite.ofFinset (Finset.Iic (km (n+1))) fun x ↦ ?_
         · simp only [Finset.mem_Iic, Nat.le_eq]
           exact Eq.to_iff rfl
-      intro i hi
-      exact isClosed_closure
   simp_rw [ENNreal_ProbMeasure_toMeasure, ENNReal.coe_le_coe] at bigcalc
   exact bigcalc
 
