@@ -165,6 +165,13 @@ lemma truncated_geom_series (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) :
   norm_num; rw [ENNReal.inv_mul_cancel]
   all_goals norm_num
 
+lemma ENNReal.tsum_two_zpow_neg_add_one :
+    ∑' m : ℕ, 2 ^ (-1 - m  : ℤ) = (1 : ENNReal) := by
+  simp_rw [neg_sub_left, ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num),
+   ← Nat.cast_one (R := ℤ), ← Nat.cast_add, zpow_natCast, ENNReal.inv_pow,
+   ENNReal.tsum_geometric_add_one, one_sub_inv_two, inv_inv]
+  exact ENNReal.inv_mul_cancel (by simp) (by simp)
+
 lemma rearrange (m : ℕ) : (2 : NNReal) ^ (-(1 : ℤ) + (-m : ℤ)) = 1 / 2 * (1 / 2) ^ m := by
   field_simp
   rw [← Int.neg_add, zpow_neg]
@@ -267,7 +274,13 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
       exact tsumMeasureCompl μ
     _ ≤ (∑' (m : ℕ), (ε : ENNReal) * 2 ^ (-(m+1) : ℤ)) := by
       exact lt_geom_series S D ε μ hs km hbound
-    _ = ε := by exact truncated_geom_series ε
+    _ = ε := by
+      rw [ENNReal.tsum_mul_left]
+      nth_rw 2 [←mul_one (a :=ε)]
+      push_cast
+      congr
+      ring_nf
+      exact ENNReal.tsum_two_zpow_neg_add_one
   -- Final proof
   use bigK
   constructor

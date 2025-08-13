@@ -377,14 +377,16 @@ theorem homeothingamajig : ∃ fonction : (X → (ℕ → Icc (0:ℝ) 1)), IsEmb
         simp [dist] --Can I get that this is summable?
         have summ : Summable fun (n_1 : ℕ) ↦ (2 ^ n_1)⁻¹ * min |(T_func X n_1 (txn (subseq n)).ofPiNat : ℝ) - ↑(T_func X n_1 tx.ofPiNat)| 1 := by
           apply Summable.of_norm_bounded (fun i ↦ (2 ^ i)⁻¹)
-          · simp_rw [←one_div,←one_div_pow]
-            exact summable_geometric_two
+          · simp_rw [←one_div,←one_div_pow]; exact summable_geometric_two
           · intro i
-            simp
+            simp only [norm_mul, norm_inv, norm_pow, Real.norm_ofNat, Real.norm_eq_abs, inv_pos,
+              Nat.ofNat_pos, pow_pos, mul_le_iff_le_one_right]
             rw [← Real.dist_eq, abs_of_nonneg (by positivity)]
             exact min_le_right _ 1
-        simp
-        refine le_tsum (a := (2 ^ i)⁻¹ * (δ / 3)) (f := fun (n_1 : ℕ) ↦ (2 ^ n_1)⁻¹ * min |(T_func X n_1 (txn (subseq n)).ofPiNat : ℝ) - ↑(T_func X n_1 tx.ofPiNat)| 1) (b := i) ?_ ?_ ?_
+        simp only [ge_iff_le]
+        refine le_tsum (a := (2 ^ i)⁻¹ * (δ / 3)) (f := fun (n_1 : ℕ) ↦ (2 ^ n_1)⁻¹ *
+          min |(T_func X n_1 (txn (subseq n)).ofPiNat : ℝ) - ↑(T_func X n_1 tx.ofPiNat)| 1)
+          (b := i) ?_ ?_ ?_
         simp only [inv_pos, Nat.ofNat_pos, pow_pos, mul_le_mul_left, le_inf_iff]
         swap
         · intro t; positivity
@@ -393,6 +395,7 @@ theorem homeothingamajig : ∃ fonction : (X → (ℕ → Icc (0:ℝ) 1)), IsEmb
         constructor
         exact rewr n
         linarith
+      apply Filter.eventually_atTop at total_dist
       --total_dist and hconv_txn are contradictory now!
       sorry
 
