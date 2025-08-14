@@ -39,12 +39,25 @@ namespace ENNReal
 -- TODO: Same for `ENNReal.one_le_rpow`
 
 protected lemma inv_zpow (x : ℝ≥0∞) (n : ℤ) : x⁻¹ ^ n = (x ^ n)⁻¹ := by
-  field_simp
-  simp [one_div,← rpow_intCast, inv_rpow]
+  simp [← rpow_intCast, inv_rpow]
+
 
 lemma zero_zpow_def (n : ℤ) : (0 : ℝ≥0∞) ^ n = if 0 < n then 0 else if n = 0 then 1 else ⊤ := by
-  rw [← rpow_intCast,zero_rpow_def]; simp
-
+  have : (0 : ENNReal) ≠ ⊤ := zero_ne_top
+  rcases lt_trichotomy (0 : ℤ) n with (H | rfl | H)
+  swap; · simp
+  · split_ifs with ha
+    swap; · linarith
+    lift n to ℕ using Int.le_of_lt H
+    rw [zpow_natCast]
+    simp only [pow_eq_zero_iff', ne_eq, true_and]
+    exact Nat.ne_zero_iff_zero_lt.mpr <| Int.ofNat_pos.mp H
+  · split_ifs with ha hb
+    all_goals try linarith
+    induction n
+    all_goals try linarith
+    rw [neg_sub_comm,neg_sub_left,←Int.negSucc_eq, zpow_negSucc]
+    simp
 
 lemma top_zpow (n : ℤ) : (⊤ : ℝ≥0∞) ^ n = if 0 < n then ⊤ else if n = 0 then 1
     else 0 := by
@@ -237,7 +250,8 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     (hcomp : IsCompact (closure S)) (ε : ℝ≥0∞) (hε : 0 < ε) (hεbound : ε ≤ 1)
     (Cov : ⋃ i, U i = univ) : ∃ (k : ℕ), ∀ μ ∈ S,  1 - ε < μ (⋃ (i ≤ k), U i) := by
   have εfin : ε ≠ ⊤ := by
-    intro h; rw [h] at hεbound
+    intro h
+    rw [h] at hεbound
     exact not_top_le_coe hεbound
   lift ε to ℝ≥0 using εfin
   obtain ⟨ε,hε'⟩ := ε
@@ -250,7 +264,6 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
     (μlim (⋃ (i ≤ n), U i) : ℝ)
     _ ≤ liminf (fun k ↦ (μ (sub k) (⋃ (i ≤ n), U i) : ℝ)) atTop := by
       have hopen : IsOpen (⋃ i ≤ n, U i) := isOpen_biUnion fun i a ↦ O i
-      --This is the key lemma
       have := ProbabilityMeasure.le_liminf_measure_open_of_tendsto hμconverges hopen
       simp only [Function.comp_apply] at this
       rw [toReal_liminf]; norm_cast
@@ -258,9 +271,8 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
       rw [←ofNNReal_liminf] at this; norm_cast at this
       use 1
       simp only [ge_iff_le, eventually_map, eventually_atTop, forall_exists_index]
-      intro a x h
-      specialize h x (by simp); apply h.trans
-      exact ProbabilityMeasure.apply_le_one (μ (sub x)) (⋃ i ≤ n, U i)
+      exact fun _ x h ↦ (h x (by simp)).trans <|
+        ProbabilityMeasure.apply_le_one (μ (sub x)) (⋃ i ≤ n, U i)
     _ ≤ liminf (fun k ↦ (μ (sub k) (⋃ (i ≤ sub k), U i) : ℝ)) atTop := by
       apply Filter.liminf_le_liminf
       · simp only [NNReal.coe_le_coe, eventually_atTop, ge_iff_le]
@@ -269,14 +281,12 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
         refine (μ (sub b)).apply_mono
         <| Set.biUnion_mono (fun i (hi : i ≤ n) ↦ hi.trans ?_) fun _ _ ↦ le_rfl
         exact le_trans (Nat.le_add_right n 1) (le_trans hypo (StrictMono.le_apply hsubmono))
-      · simp only [autoParam, ge_iff_le, isBoundedUnder_ge_toReal]
-        use 0; simp
+      · simp only [autoParam, ge_iff_le, isBoundedUnder_ge_toReal]; use 0; simp
       · simp only [autoParam, ge_iff_le, isCoboundedUnder_ge_toReal]
-        use 1; simp only [eventually_map, eventually_atTop, ge_iff_le, forall_exists_index]
-        intro a d hyp
-        specialize hyp d (by simp)
-        apply hyp.trans; norm_cast
-        exact ProbabilityMeasure.apply_le_one (μ (sub d)) (⋃ i ≤ sub d, U i)
+        use 1
+        simp only [eventually_map, eventually_atTop, ge_iff_le, forall_exists_index]
+        exact fun _ d hyp ↦ (hyp d (by simp)).trans
+          <| ProbabilityMeasure.apply_le_one (μ (sub d)) (⋃ i ≤ sub d, U i)
     _ ≤ 1 - ε := by
       apply Filter.liminf_le_of_le
       · use 0; simp
@@ -306,17 +316,20 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     IsTightMeasureSet {((μ : ProbabilityMeasure X) : Measure X) | μ ∈ S} := by
   rw [IsTightMeasureSet_iff_exists_isCompact_measure_compl_le]
   by_cases hempty : IsEmpty X
-  · intro ε εpos; use ∅; constructor
+  · intro ε εpos
+    use ∅
+    constructor
     · exact isCompact_empty
     intro μ hμ
     rw [← univ_eq_empty_iff] at hempty
     rw [←hempty]
     simp
-  simp only [not_isEmpty_iff] at hempty
+  rw [not_isEmpty_iff] at hempty
   intro ε εpos
   obtain ⟨D, hD⟩ := exists_dense_seq X
   have hcov (m : ℕ): ⋃ i, ball (D i) (1 / (m + 1)) = univ := by
-    rw [denseRange_iff] at hD; ext p
+    rw [denseRange_iff] at hD
+    ext p
     exact ⟨fun a ↦ trivial,fun _ ↦ mem_iUnion.mpr <| hD p (1 / (m + 1)) Nat.one_div_pos_of_nat⟩
   by_cases hεbound : ε > 1
   · use ∅
@@ -328,13 +341,11 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     rw [compl_empty,measure_univ]; exact le_of_lt hεbound
   have byclaim (m : ℕ) : ∃ (k : ℕ), ∀ μ ∈ S, μ (⋃ i ≤ k, ball (D i) (1 / (m + 1))) >
   1 - (ε * 2 ^ (- m : ℤ) : ℝ≥0∞) := by
-    let ε' :=  ε * 2 ^ (-m : ℤ)
     refine (MeasOpenCoverTendstoMeasUniv (S := S) (U := fun i ↦ ball (D i) (1 / (m + 1)))
-    (ε := ε') (hε := ?_) (fun i ↦ isOpen_ball) hcomp) ?_ (hcov m)
-    · simp [ε']; exact ⟨εpos,(ENNReal.zpow_pos (Ne.symm (NeZero.ne' 2)) (ofNat_ne_top) (-↑m))⟩
-    · simp [ε']; refine Left.mul_le_one (le_of_not_gt hεbound) <|
-        zpow_le_one_of_nonpos (by linarith) (by simp)
-  choose! km hbound using id byclaim
+    (ε := (ε * 2 ^ (-m : ℤ))) (hε := ?_) (fun i ↦ isOpen_ball) hcomp) ?_ (hcov m)
+    · simp; exact ⟨εpos,(ENNReal.zpow_pos (Ne.symm (NeZero.ne' 2)) (ofNat_ne_top) (-↑m))⟩
+    · exact Left.mul_le_one (le_of_not_gt hεbound) <| zpow_le_one_of_nonpos (by linarith) (by simp)
+  choose! km hbound using byclaim
   -- This is a set we can construct to show tightness
   let bigK := ⋂ m, ⋃ (i ≤ km (m + 1)), closure (ball (D i) (1 / (m + 1)))
   have bigcalc (μ : ProbabilityMeasure X) (hs : μ ∈ S) := calc
@@ -344,14 +355,7 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
     _ ≤ ∑' m, μ.toMeasure ((⋃ (i ≤ km (m + 1)), closure (ball (D i) (1 / (m + 1))))ᶜ) := by
       apply measure_iUnion_le
     _ = ∑' m, (1 - μ.toMeasure (⋃ (i ≤ km (m + 1)), closure (ball (D i) (1 / (m + 1))))) := by
-      congr! with m
-      rw [measure_compl ?_ (by simp)]
-      · simp
-      · refine Finite.measurableSet_biUnion ?_ (fun b a ↦ measurableSet_closure)
-        · simp only [Nat.le_eq]
-          refine BddAbove.finite <| bddAbove_def.mpr ?_
-          use (km (m + 1) + 1)
-          exact fun y a ↦ Nat.le_add_right_of_le a
+      congr! with m; rw [measure_compl (by measurability) (by simp)]; simp
     _ ≤ (∑' (m : ℕ), (ε : ENNReal) * 2 ^ (-(m + 1) : ℤ)) := by
       apply lt_geom_series S D ε μ hs km hbound
     _ = ε := by
