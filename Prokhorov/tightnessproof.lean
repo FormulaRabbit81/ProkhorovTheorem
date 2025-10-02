@@ -1,7 +1,6 @@
 import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 import Mathlib.Tactic.Rify
---set_option maxHeartbeats 400000
---set_option diagnostics true
+
 set_option linter.unusedTactic false
 set_option linter.flexible true
 open Topology Metric Filter Set ENNReal NNReal MeasureTheory.ProbabilityMeasure TopologicalSpace
@@ -322,33 +321,6 @@ lemma Compact_if_tight {S : Set (ProbabilityMeasure X)}
   rw [← Tightprob_iff_Tight] at ht
   sorry
 
-
--- variable {G : Type*} [PseudoMetricSpace G] [CompactSpace G] [SeparableSpace G] [CompleteSpace G]
-
-
--- noncomputable instance : Norm C(G, ℝ) where
---   norm f := sSup (Set.range fun x ↦ |f x|)
-
-
--- noncomputable instance : SeminormedAddCommGroup C(G, ℝ) where
---   --dist_eq f g := by simp [norm]
---   dist_self f := by simp only [dist_self]--;rw [sSup_range]; simp
---   dist_comm f g := by rw [dist_comm]
---     --rw [←neg_sub];simp only [norm]; congr; ext x; simp_rw [ContinuousMap.neg_apply,abs_neg]
---   dist_triangle f g h := by exact dist_triangle f g h
---   dist_eq f := by
---     intro g; simp [norm]; rw [SeminormedRing.dist_eq]
-
-  --   simp only [norm]; simp; simp_rw [sSup_range]
-  --   have add_sub_zero : (⨆ x, |f x - h x|) = ⨆ x, |(f x - g x) + (g x - h x)| := by
-  --     refine iSup_congr ?_
-  --     simp
-  --   rw [add_sub_zero]; refine Real.iSup_le ?_ ?_
-  --   · intro i; apply (abs_add_le (f i - g i) (g i - h i)).trans
-  --     refine add_le_add ?_ ?_
-  --     · refine le_ciSup_of_le ?_ i ?_
-
-  --     all_goals simp
 
 theorem isTightMeasureSet_iff_isCompact_closure
   {X : Type*} {mX : MeasurableSpace X} [MetricSpace X] [CompleteSpace X]

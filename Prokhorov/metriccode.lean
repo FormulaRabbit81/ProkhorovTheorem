@@ -425,7 +425,6 @@ lemma isEmbedding_toPiNaticc :
   rw [isEmbedding_iff_isInducing]
   refine isInducing_iff_nhds.mpr ?_
   intro x
-  --rw [← @nhds_induced] - Potentially useful, but no idea how to proceed as no lemmas work on it
   rw [@Filter.ext_iff]
   intro S
   constructor
@@ -434,54 +433,6 @@ lemma isEmbedding_toPiNaticc :
     use toPiNat '' S
     constructor
     rw [@mem_nhds_iff]
-
-
-
-
-  -- rw [isEmbedding_iff, isInducing_iff_nhds]
-  -- refine ⟨fun x ↦ ((continuous_toPiNat continuous_T).tendsto x).le_comap.antisymm ?_,
-  --   (toPiNatEquiv X (fun n => Icc (0:ℝ) 1) (T_func X)).injective⟩
-  -- simp_rw [le_def]
-  -- intro xe hxe
-  -- refine (mem_comap_iff ?_ ?_).mpr ?_
-  -- have injection (x : X) : { ofPiNat := x } = toPiNat x := by apply?
-  -- · rw [@injective_iff_pairwise_ne]
-  --   sorry
-  -- · rw [range]
-  --   simp
-  -- · rw [mem_nhds_iff] at hxe
-  --   refine mem_interior_iff_mem_nhds.mp ?_
-  --   --rw [interior]
-  --   rw [@mem_interior]
-  --   simp
-  --   obtain ⟨ε, hεpos, hε⟩ := hxe
-  --   use ball x ε
-  --   constructor; exact hε
-  --   constructor
-  --   · rw [@isOpen_iff_continuous_mem]
-  --     simp
-  --     constructor
-  --     intro s t
-
-
-
-
-  -- , mem_nhds_iff]
-  --rintro S ⟨ε, hε, hεs⟩
-  -- refine ⟨ofPiNat ⁻¹' S, ?_, .rfl⟩
-
-
-  --intro xe hxe
-  -- rw [← nhds_induced]
-  -- rw [mem_nhds_induced]
-  --refine (mem_nhds_induced toPiNat x xe).mp ?_
-
-
-
-
-  -- , mem_nhds_iff]
-  -- rintro S ⟨ε, hε, hεs⟩
-  -- refine ⟨ofPiNat ⁻¹' S, ?_, .rfl⟩
   sorry
 
 
@@ -507,53 +458,6 @@ lemma isEmbedding_toPiNat (continuous_f : ∀ n, Continuous (f n))
   rw [not_isEmpty_iff] at hempt
   --obtain ⟨p⟩ := hempt
   let D : ℕ → X := choose (exists_dense_seq X)
-  sorry
-
-
-  --let α : ℕ → X → ℝ := fun n x => min (dist x <| D n) 1
-
-  -- · refine Continuous.continuousAt ?_
-  --   refine SeqContinuous.continuous ?_
-  --   intro Tn limTn hconvTn
-  --   by_contra!
-
-
-
-
-
-
-    --from continuity of f? No
-  -- simp
-  -- rw [mem_nhds_iff]
-  -- use ε
-
-  --simp [ofPiNat];
-  --rw [@mem_nhds_iff];
-  -- refine eventually_nhds_iff_ball.mp ?_
-  -- rw [eventually_iff_seq_eventually]
-  -- intro zn htendszn
-  -- refine tendsto_principal.mp ?_
-  -- have Function.injective f := by
-
-
-  -- use 2 * ε; constructor
-  --· norm_num; exact hε
-  --refine Set.image_subset_iff.mp ?_
-
-
-  -- by_contra!
-
-
-  -- rw [Metric]
-  -- refine ⟨fun x ↦ ?_, (toPiNatEquiv X Y f).injective⟩
-
-
-  -- rw [isHomeomorph_iff_continuous_bijective]
-  -- exact ⟨continuous_toPiNat continuous_f, (toPiNatEquiv X Y f).bijective⟩
-
---end MetricSpace
---end MetricSpace
---end Metric.PiNatEmbed
 
 variable [TopologicalSpace X] [CompactSpace X] [∀ n, MetricSpace (Y n)]
 

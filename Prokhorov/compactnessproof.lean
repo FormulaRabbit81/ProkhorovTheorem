@@ -1,10 +1,19 @@
---import Mathlib
-import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
-import Prokhorov.Mathlib.Topology.Algebra.InfiniteSum.Basic
+import Mathlib
+-- import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
+-- import Prokhorov.Mathlib.Topology.Algebra.InfiniteSum.Basic
 
 set_option autoImplicit false
 
-open TopologicalSpace MeasureTheory.ProbabilityMeasure Module--Analysis
+--This stuff was in Algebra.InfiniteSum.Basic in a weird folder in my repo?
+-- variable {α β : Type*} [TopologicalSpace α] [CommMonoid α]
+
+-- @[to_additive (attr := simp)]
+-- theorem tprod_ite_eq' (b : β) [DecidablePred (· = b)] (f : β → α) :
+--     ∏' b', (if b' = b then f b' else 1) = f b := by
+--   rw [tprod_eq_mulSingle b]
+--   · simp
+--   · intro b' hb'; simp [hb']
+open TopologicalSpace MeasureTheory.ProbabilityMeasure Module
 
 namespace ENNReal
 
@@ -12,7 +21,7 @@ namespace ENNReal
 
 end ENNReal
 
-variable {G : Type*} [PseudoMetricSpace G] [CompactSpace G] [SeparableSpace G]
+variable {G : Type*} [MetricSpace G] --[CompactSpace G] --Relax to PseudoEmetricSpace later?
   [MeasurableSpace G] [BorelSpace G]--[OpensMeasurableSpace G] --[T2Space G]
   --Iterestingly I need the T2 assumption on G to show the closure is also tight
 
@@ -22,27 +31,10 @@ instance psm : PseudoMetricSpace (LevyProkhorov <| ProbabilityMeasure G) :=
   levyProkhorovDist_pseudoMetricSpace_probabilityMeasure
 
 
-instance levyProkhorovCompact : CompactSpace (LevyProkhorov (ProbabilityMeasure G)) := by
-  have hSeparability : SeparableSpace G := by infer_instance
-  --let C : G → ℝ := Dual G
-  -- instance : NormedSpace ℝ C(G, ℝ) :=
-  sorry
-
-
---open scoped Interval MeasureTheory
-
 open Topology Metric Filter Set ENNReal NNReal
-
-def IsTightMeasureSet (S : Set (Measure G)) : Prop :=
-  Tendsto (⨆ μ ∈ S, μ) (cocompact G).smallSets (𝓝 0)
 
 variable (S : Set <| ProbabilityMeasure G)
 --Useful version
-lemma IsTightMeasureSet_iff_exists_isCompact_measure_compl_le :
-    IsTightMeasureSet {((μ : ProbabilityMeasure G) : Measure G) | μ ∈ S} ↔
-    ∀ (ε : ENNReal), 0 < ε → ∃ K : Set G, IsCompact K ∧ ∀ μ ∈ S, μ (Kᶜ) ≤ ε := by sorry
-
-
 def TightProb (S : Set (ProbabilityMeasure G)) : Prop :=
   ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set G, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
 
@@ -81,8 +73,6 @@ def equiv (s : Set (ℕ → ℝ)) (hs : ∃ t : Set ℝ, IsBounded t ∧ s ⊆ S
       simp [eLpNorm, eLpNorm'];
       obtain ⟨bigset, bd, bigsetbound⟩ := hs
       rw [lintegral_countable']
-      have (a) : ‖(f : ℕ → ℝ) a‖ₑ < ⊤ := by
-        simp
       rw [@isBounded_iff_forall_norm_le] at bd
       obtain ⟨C, hC⟩ := bd
       have sdo : (∀ a, ‖(f : ℕ → ℝ) a‖ₑ ≤ (C.toNNReal)) := by
@@ -99,7 +89,11 @@ def equiv (s : Set (ℕ → ℝ)) (hs : ∃ t : Set ℝ, IsBounded t ∧ s ⊆ S
       apply mulrw.trans_lt
       rw [ENNReal.tsum_mul_left]
       refine mul_lt_top (by simp) ?_
-      simp [μ, indicator, ENNReal.smul_def]
+      simp_all only [μ, inv_pow, ENNReal.smul_def, ne_eq, pow_eq_zero_iff', OfNat.ofNat_ne_zero,
+        false_and, not_false_eq_true, coe_inv, ENNReal.coe_pow, coe_ofNat,
+        MeasurableSpace.measurableSet_top, Measure.sum_apply, Measure.smul_apply,
+        Measure.dirac_apply', indicator, mem_singleton_iff, Pi.one_apply, smul_eq_mul, mul_ite,
+        mul_one, mul_zero,tsum_ite_eq]
       simp_rw [ENNReal.inv_pow, tsum_geometric, one_sub_inv_two, inv_inv, ofNat_lt_top]
     · simp
       convert f.2
@@ -108,50 +102,25 @@ def equiv (s : Set (ℕ → ℝ)) (hs : ∃ t : Set ℝ, IsBounded t ∧ s ⊆ S
   left_inv f := by ext : 1; simpa using MemLp.coeFn_toLp (μ := μ) _
   right_inv f := by simp
 
-def Y : Set (Lp ℝ 1 μ) :=  (fun x => ⇑x)⁻¹' {f | ∀ n, f n ∈ Icc (0 : ℝ) 1}
-
-instance : MeasurableSpace ↥(Lp ℝ 1 μ) := borel ↥(Lp ℝ 1 μ)
-instance : MeasurableSpace Y := Subtype.instMeasurableSpace
-instance : BorelSpace ↥(Lp ℝ 1 μ) := { measurable_eq := rfl }
-instance : BorelSpace Y := inferInstance--Subtype.borelSpace Y
-
-lemma Compacty : CompactSpace Y := by
-  sorry -- refine compactSpace_iff_isBounded_univ.mpr ?_ ?_
 
 variable (a := Classical.choose (exists_dense_seq X))
 
--- def T (x : X) : Y := equiv {
---     val n := min 1 (dist x <| Classical.choose (exists_dense_seq X) n)
---     property := sorry
---   }
 
-theorem homeo_to_compact_space {X : Type*} [PseudoMetricSpace X] [SeparableSpace X] :
-    ∃ (T : X → Y), IsEmbedding T := by--Maybe build T explicitly first?
-    -- obtain ⟨D, fD⟩ := TopologicalSpace.exists_countable_dense X
-      sorry
+-- theorem homeo_to_compact_space {X : Type*} [PseudoMetricSpace X] [SeparableSpace X] :
+--     ∃ (T : X → Y), IsEmbedding T := by--Done
+--       sorry
 
-omit [PseudoMetricSpace G] [CompactSpace G] [SeparableSpace G] in
+omit [MetricSpace G] [BorelSpace G] in
 lemma ENNreal_ProbMeasure_toMeasure (μ : ProbabilityMeasure G) (A : Set G) :
     μ.toMeasure A = ((μ A) : ENNReal) := by
     exact Eq.symm (ennreal_coeFn_eq_coeFn_toMeasure μ A)
 
-variable [MeasurableSpace X] [MeasurableSpace Y] (μ : ProbabilityMeasure G)
-  (ν : ProbabilityMeasure Y) (Ψ : G → Y) (hΨ : AEMeasurable Ψ μ)
-
-/-Needs sorting once format of Y is sorted-/
-lemma conc_mass : ∃ (C : Set Y), ν(C) = 1 := by sorry
+variable [MeasurableSpace X]  (μ : ProbabilityMeasure G)
 
 
--- lemma define_μn (μn : ℕ → ProbabilityMeasure G) (hμn : ∀ n, μn n ∈ S)(T : X → Y) (ht : IsEmbedding T) : ∃ (νn : ℕ → ProbabilityMeasure Y),
---       ∀ n, νn n = (μn n).map hΨ := by sorry
-
--- lemma concentrated_mass (μn : ℕ → ProbabilityMeasure G) (hμn : ∀ n, μn n ∈ S) (T : X → Y) (ht : IsEmbedding T): ∃ (C : Y), ν(C) = 1 := by sorry
-
-
-
-variable [T2Space G]
+variable [SecondCountableTopology G]
 /-One direction is trivial-/
-lemma Tight_closure_iff_tight (S : Set (ProbabilityMeasure G)):
+lemma Tight_closure_iff_tight (S : Set (ProbabilityMeasure G)) :
   IsTightMeasureSet {((μ : ProbabilityMeasure G) : Measure G) | μ ∈ S} ↔
   TightProb (closure S) := by
   constructor; swap
@@ -159,8 +128,10 @@ lemma Tight_closure_iff_tight (S : Set (ProbabilityMeasure G)):
     intro ε εpos; specialize hε ε εpos; obtain ⟨K,hkCompact,hbound⟩ := hε
     use K; constructor
     · exact hkCompact
-    intro μ hμ; specialize hbound μ <| subset_closure hμ
-    rw [←ENNreal_ProbMeasure_toMeasure]
+    intro μ hμ
+    simp_all
+    obtain ⟨μ1, hμ1, _, rfl⟩ := hμ
+    specialize hbound μ1 <| subset_closure hμ1
     exact hbound
   intro ht
   simp [TightProb]; intro ε hε
@@ -176,11 +147,7 @@ lemma Tight_closure_iff_tight (S : Set (ProbabilityMeasure G)):
     _ ≤ (liminf (fun k => (convseq k (Kᶜ))) atTop) := by
       rw [ENNreal_ProbMeasure_toMeasure]; norm_cast
       have hopen : IsOpen Kᶜ := by
-        simp
-        -- Note - I needed to add a Hausdorff assumption for this line
-        -- (Maybe there is a way to avoid it)
-        -- I only need to prove K is closed to apply the portmanteau theorem
-        apply hc.isClosed
+        rw [isOpen_compl_iff]; exact hc.isClosed
       have := ProbabilityMeasure.le_liminf_measure_open_of_tendsto hconv hopen
       simp_rw [←ProbabilityMeasure.ennreal_coeFn_eq_coeFn_toMeasure] at this
       rw [←ofNNReal_liminf] at this;
@@ -198,6 +165,28 @@ lemma Tight_closure_iff_tight (S : Set (ProbabilityMeasure G)):
       specialize hb x (by rfl)
       apply hb.trans; simp
   exact tightnesscalc
+
+open TopologicalSpace Filter
+open Encodable Function TopologicalSpace Topology
+open scoped PiCountable unitInterval
+
+omit [Nonempty X] in
+theorem homeothingamajig : ∃ funn : X → ℕ → I, IsEmbedding funn := by sorry
+--proven elsewhere and in process of PRing to Mathlib. Blocked by another PR
+
+instance : PseudoEMetricSpace (ℕ → ↑I) := by
+  sorry
+
+instance : OpensMeasurableSpace (ℕ → ↑I) := Pi.opensMeasurableSpace
+
+instance : PseudoMetricSpace (LevyProkhorov (ProbabilityMeasure (ℕ → I))) := sorry
+  --levyProkhorovDist_pseudoMetricSpace_probabilityMeasure
+
+instance levyProkhorovCompact : CompactSpace (LevyProkhorov (ProbabilityMeasure (ℕ → ↑I))) := by
+  -- Almost proven given #28601
+  sorry
+
+lemma comp_iff_levprok_comp {S : Set <| ProbabilityMeasure G} : IsCompact S ↔ IsCompact {(( LevyProkhorov.equiv (μ : ProbabilityMeasure G)) : LevyProkhorov <| ProbabilityMeasure G) | μ ∈ S} := by sorry
 
 lemma Compact_if_tight {S : Set (ProbabilityMeasure G)}
 (ht : IsTightMeasureSet {((μ : ProbabilityMeasure G) : Measure G) | μ ∈ S}) :
@@ -217,32 +206,40 @@ lemma Compact_if_tight {S : Set (ProbabilityMeasure G)}
     use K
     constructor
     all_goals simpa
+  haveI : MetricSpace (ProbabilityMeasure (ℕ → I)) :=
+    metrizableSpaceMetric (ProbabilityMeasure (ℕ → ↑I))
+  haveI topeq := levyProkhorov_eq_convergenceInDistribution (Ω := G)
+  have h_compact : CompactSpace (ProbabilityMeasure (ℕ → I)) := by sorry
   --rw [PseudoMetrizableSpace.isCompact_iff_isSeqCompact]
   letI psms : PseudoMetricSpace (ProbabilityMeasure G) :=
     pseudoMetrizableSpacePseudoMetric (ProbabilityMeasure G)
   rw [UniformSpace.isCompact_iff_isSeqCompact (s := closure S)]
-  intro seq hseq
-  have homeo : ∃ T : G → Y, IsEmbedding T := homeo_to_compact_space
-  obtain ⟨T, hT⟩ := homeo
-  have hborel (B : Set Y) (hB : Measurable B) : Measurable (T⁻¹' B)  := by 
+  intro μnseq hμnseq
+  obtain ⟨T, hT⟩ := (homeothingamajig (X := G))
+  let Y₀ := Set.range T
+  have meas (n : ℕ) : (AEMeasurable T (μnseq n : Measure G)) := (Continuous.aemeasurable <| IsEmbedding.continuous hT)
+  let v_n (n : ℕ) : ProbabilityMeasure (ℕ → I) := by
+    let μ := μnseq n
+    let aem : AEMeasurable T (μ : Measure G) :=
+      Continuous.aemeasurable (IsEmbedding.continuous hT) --(μ : Measure G)
+    exact μ.map (f := T) aem
+  sorry
+    --let v_n n: ProbabilityMeasure (ℕ → ↑I) := (μnseq n).map (f := T) (meas n) --(Continuous.aemeasurable <| IsEmbedding.continuous hT)--μnseq n (T⁻¹ (Y₀ ∩ ·))
 
-  let ν n : ProbabilityMeasure
+  --def to_lp (μ : ProbabilityMeasure (ℕ → I)) : LevyProkhorov (ProbabilityMeasure (ℕ → I)) := (μ : LevyProkhorov (ProbabilityMeasure (ℕ → I)))
+  -- def from_lp (μ_lp : LevyProkhorov (ProbabilityMeasure (ℕ → I))) : ProbabilityMeasure (ℕ → I) :=
+  --   (LevyProkhorov.equiv (ProbabilityMeasure (ℕ → I))) μ_lp
+
+
+
+
+
+  -- have homeo : ∃ T : G → Y, IsEmbedding T := homeo_to_compact_space
+  -- obtain ⟨T, hT⟩ := homeo
+
+  --let ν n : ProbabilityMeasure
   --rcases homeo with ⟨T,hT,l⟩
   --choose T using homeo
-
-
-
-  have borelmeas : ∀ B ∈ borel Y, T
-  --let B : Set Y :=
-  --have hB : MeasurableSet B :=
-  let B : Set Y :=
-
-  haveI : BorelSpace Y := inferInstance
-  haveI : BorelSpace Y := by
-
-
-
-  sorry
 
 end
 end MeasureTheory
