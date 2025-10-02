@@ -162,8 +162,8 @@ private lemma min_le_geometric {x y : X} (n : ℕ) :
   exact min_le_right ..
 
 private lemma summable_min {x y : X} :
-    Summable fun n ↦ (1 / 2) ^ n * min (dist (f n x) (f n y)) 1 := by
-    apply (summable_geometric_two.of_norm_bounded) min_le_geometric
+    Summable fun n ↦ (1 / 2) ^ n * min (dist (f n x) (f n y)) 1 :=
+      (summable_geometric_two.of_norm_bounded) min_le_geometric
 
 
 noncomputable instance : PseudoMetricSpace (PiNatEmbed X Y f) :=
@@ -205,6 +205,9 @@ variable [∀ n, MetricSpace (Y n)] --{Z : ℕ → Icc 0 1}
 noncomputable abbrev metricSpace (separating_f : Pairwise fun x y ↦ ∃ n, f n x ≠ f n y) :
     MetricSpace (PiNatEmbed X Y f) :=
   (emetricSpace separating_f).toMetricSpace fun x y ↦ by simp [← ENNReal.ofReal_dist]
+
+lemma isEmbedding : IsEmbedding (fun i n ↦ f n (ofPiNat i) : PiNatEmbed X Y f → _) := by
+  sorry
 
 section CompactSpace
 variable [TopologicalSpace X] [CompactSpace X]
@@ -304,9 +307,6 @@ lemma injective_T : Pairwise fun x y ↦ ∃ n, T_func X n x ≠ T_func X n y :=
 
 variable (A : Type*) [TopologicalSpace A]
 
-example (S : Set X) (a : X) (ha : a ∈ S) : a ∈ closure S := subset_closure ha
-
-example (b : ℝ)  (h2 : b ≥ 4) : 3 < b := by bound
 
 lemma le_tsum (a : ℝ) (b : ℕ) (f : ℕ → ℝ) (hf : a ≤ f b) (hg : ∀ t, f t ≥ 0) (hs : Summable f) :
   a ≤ ∑' (n : ℕ), f n  := by
@@ -314,13 +314,10 @@ lemma le_tsum (a : ℝ) (b : ℕ) (f : ℕ → ℝ) (hf : a ≤ f b) (hg : ∀ t
      a ≤ f b := hf
      _ ≤ ∑' (n : ℕ), f ↑n := hs.le_tsum _ (by simp [hg])
 
---example (a b c : ℝ) (ha : b ≤ c) : a * b ≤ a * c := by refine mul_le_mul_of_nonneg ?_ ha ?_ ?_
+lemma compa : CompactSpace (ℕ → Icc (0:ℝ) 1) := compactSpace
 
-example (a b c : ℝ) : (a * b) / c = a * b / c := by rw [div_eq_div_iff_comm]
-
-
-theorem homeothingamajig : ∃ fonction : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbedding fonction := by
-  have firststep : X ≃ₜ PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) := {
+theorem homeothingamajig : ∃ funn : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbedding funn := by
+  let firststep : X ≃ₜ PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) := {
     toFun := toPiNatEquiv X (fun n => Icc (0:ℝ) 1) (T_func X)
     invFun := ofPiNat
     left_inv _ := rfl
@@ -388,81 +385,38 @@ theorem homeothingamajig : ∃ fonction : (X → (ℕ → Icc (0:ℝ) 1)), IsEmb
           min |(T_func X n_1 (txn (subseq n)).ofPiNat : ℝ) - ↑(T_func X n_1 tx.ofPiNat)| 1)
           (b := i) ?_ ?_ ?_
         simp only [inv_pos, Nat.ofNat_pos, pow_pos, mul_le_mul_left, le_inf_iff]
-        swap
-        · intro t; positivity
-        swap
-        · exact summ
+        swap; · intro t; positivity
+        swap;· exact summ
         constructor
         exact rewr n
         linarith
-      apply Filter.eventually_atTop at total_dist
-      --total_dist and hconv_txn are contradictory now!
+      simp [total_dist, -eventually_atTop, ← not_le, NeBot.ne] at h_conv_txn
+  }
+  --have secondstep : IsEmbedding (T_func X : (ℕ → X → Icc (0:ℝ) 1)) := by sorry
+  let secondstep' : PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) ≃ₜ (ℕ → Icc (0:ℝ) 1) := {
+    toFun := by
+      intro a a_1
+      apply Subtype.mk
+      · simp_all only [mem_Icc]
+        apply And.intro
+        on_goal 2 => {rfl
+        }
+        · simp_all only [zero_le_one]
+      --ofPiNat (X := (ℕ → Icc (0:ℝ) 1))
+    invFun := --toPiNatEquiv (ℕ → ↑(Icc 0 1))
+
+    left_inv _ := sorry
+    right_inv _ := sorry
+    continuous_toFun := by
       sorry
+    continuous_invFun := by sorry
 
   }
-  sorry
+  --have := IsEmbedding.homeomorphImage (hf := secondstep)
+
+
 
 #exit
-
-theorem homeothing : ∃ fonction : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbedding fonction := by
-  have firststep : X ≃ₜ PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) := {
-    toFun := toPiNatEquiv X (fun n => Icc (0:ℝ) 1) (T_func X)
-    invFun := ofPiNat
-    left_inv _ := rfl
-    right_inv _ := rfl
-    continuous_toFun := by
-      simp [toPiNatEquiv]
-      refine continuous_toPiNat ?_; intro n
-      exact continuous_T n
-    continuous_invFun := by
-      refine SeqContinuous.continuous ?_
-      intro txn tx h_conv_txn
-      apply (tendsto_of_subseq_tendsto)
-      --1. all subsequences converge to tx.ofPiNat
-      --
-      intro subseq hsubseqinfty
-      use id
-      by_contra! hdoesnt
-      simp at hdoesnt
-      have sep : tx.ofPiNat ∉ (closure <| range (fun n => (txn (subseq n)).ofPiNat)) := by
-        rw [tendsto_atTop] at hdoesnt
-        simp at hdoesnt
-        obtain ⟨ε,εpos,hwhat⟩ := hdoesnt; specialize hwhat 0
-        obtain ⟨n,npos,hwhat1⟩ := hwhat
-        sorry
-      have clos : IsClosed (closure <| Set.range (fun n => (txn (subseq n)).ofPiNat)) := isClosed_closure
-      have nonemp : Nonempty <| (closure <| Set.range (fun n => (txn (subseq n)).ofPiNat)) := by
-        rw [@nonempty_coe_sort, closure_nonempty_iff]; exact range_nonempty fun n ↦ (txn (subseq n)).ofPiNat
-      have fromclaim : ∃ (ε : ℝ) (i : ℕ), 0 < ε ∧ T_func X i (tx.ofPiNat) ≤ ε / 3 ∧ ∀ y ∈ (closure <| Set.range (fun n => (txn (subseq n)).ofPiNat)), (T_func X i y) ≥ 2 * ε / 3 := by
-        exact separation tx.ofPiNat (closure <| Set.range (fun n => (txn (subseq n)).ofPiNat)) clos nonemp sep
-
-      obtain ⟨ε,i,εpos,lineq,gineq⟩ := fromclaim
-      sorry
-      --have sub : ∃ (subsequence : ℕ → ℕ), tx.ofPiNat ∉ (ofPiNat ∘ txn ∘ subsequence) '' _ := by sorry
-      -- rw [Filter.not_tendsto_iff_exists_frequently_notMem] at this
-      -- obtain ⟨s, hs_neighbourhood, hs_not_conv⟩ := this
-      -- rw [frequently_iff_forall_eventually_exists_and] at hs_not_conv
-      --obtain ⟨a⟩ := hs_not_conv
-      --rw [frequently_atTop] at hs_not_conv
-
-
-      --specialize hs_not_conv 3
-      --obtain ⟨b, hb, not_conv⟩ := hs_not_conv
-
-  } --refine toPiNatHomeo X ?_ ?_
-
-  have secondstep : IsEmbedding (T_func X : (ℕ → X → Icc (0:ℝ) 1)) := by sorry
-  sorry
-
-lemma IsInducingSeq (hb : Bijective (T_func X)) (hfor : SeqContinuous (T_func X)) : IsHomeomorph (T_func X) := by --(hback : SeqContinuous F ⁻¹) (hypo : ∀ (xn : ℕ → X) (x : X), Tendsto xn atTop (𝓝 x) ↔ Tendsto ((T_func X) ∘ xn) atTop (𝓝 <| F x))
-  rw [isHomeomorph_iff_exists_inverse] --Need a version of this for embeddings
-  refine ⟨?_,?_,?_,?_,?_⟩
-  · exact SeqContinuous.continuous hfor
-  sorry
-  sorry
-  sorry
-  sorry
-
 
 instance : SequentialSpace <| PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) := FrechetUrysohnSpace.to_sequentialSpace
 
