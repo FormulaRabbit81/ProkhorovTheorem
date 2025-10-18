@@ -1,18 +1,8 @@
 import Mathlib
--- import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
--- import Prokhorov.Mathlib.Topology.Algebra.InfiniteSum.Basic
+
 
 set_option autoImplicit false
 
---This stuff was in Algebra.InfiniteSum.Basic in a weird folder in my repo?
--- variable {α β : Type*} [TopologicalSpace α] [CommMonoid α]
-
--- @[to_additive (attr := simp)]
--- theorem tprod_ite_eq' (b : β) [DecidablePred (· = b)] (f : β → α) :
---     ∏' b', (if b' = b then f b' else 1) = f b := by
---   rw [tprod_eq_mulSingle b]
---   · simp
---   · intro b' hb'; simp [hb']
 open TopologicalSpace MeasureTheory.ProbabilityMeasure Module
 
 namespace ENNReal
@@ -34,6 +24,7 @@ instance psm : PseudoMetricSpace (LevyProkhorov <| ProbabilityMeasure G) :=
 open Topology Metric Filter Set ENNReal NNReal
 
 variable (S : Set <| ProbabilityMeasure G)
+
 --Useful version
 def TightProb (S : Set (ProbabilityMeasure G)) : Prop :=
   ∀ ε : ℝ≥0∞, 0 < ε → ∃ K : Set G, IsCompact K ∧ ∀ μ ∈ S, μ Kᶜ ≤ ε
@@ -105,11 +96,6 @@ def equiv (s : Set (ℕ → ℝ)) (hs : ∃ t : Set ℝ, IsBounded t ∧ s ⊆ S
 
 variable (a := Classical.choose (exists_dense_seq X))
 
-
--- theorem homeo_to_compact_space {X : Type*} [PseudoMetricSpace X] [SeparableSpace X] :
---     ∃ (T : X → Y), IsEmbedding T := by--Done
---       sorry
-
 omit [MetricSpace G] [BorelSpace G] in
 lemma ENNreal_ProbMeasure_toMeasure (μ : ProbabilityMeasure G) (A : Set G) :
     μ.toMeasure A = ((μ A) : ENNReal) := by
@@ -166,12 +152,11 @@ lemma Tight_closure_iff_tight (S : Set (ProbabilityMeasure G)) :
       apply hb.trans; simp
   exact tightnesscalc
 
-open TopologicalSpace Filter
-open Encodable Function TopologicalSpace Topology
+open TopologicalSpace Filter Encodable Function TopologicalSpace Topology
 open scoped PiCountable unitInterval
 
 omit [Nonempty X] in
-theorem homeothingamajig : ∃ funn : X → ℕ → I, IsEmbedding funn := by sorry
+theorem embedding_to_compactspace : ∃ funn : X → ℕ → I, IsEmbedding funn := by sorry
 --proven elsewhere and in process of PRing to Mathlib. Blocked by another PR
 
 instance : PseudoEMetricSpace (ℕ → ↑I) := by
@@ -183,17 +168,16 @@ instance : PseudoMetricSpace (LevyProkhorov (ProbabilityMeasure (ℕ → I))) :=
   --levyProkhorovDist_pseudoMetricSpace_probabilityMeasure
 
 instance levyProkhorovCompact : CompactSpace (LevyProkhorov (ProbabilityMeasure (ℕ → ↑I))) := by
-  -- Almost proven given #28601
+  -- Almost proven given #28601 in lfp3 branch
   sorry
 
 lemma comp_iff_levprok_comp {S : Set <| ProbabilityMeasure G} : IsCompact S ↔ IsCompact {(( LevyProkhorov.equiv (μ : ProbabilityMeasure G)) : LevyProkhorov <| ProbabilityMeasure G) | μ ∈ S} := by sorry
 
 lemma Compact_if_tight {S : Set (ProbabilityMeasure G)}
-(ht : IsTightMeasureSet {((μ : ProbabilityMeasure G) : Measure G) | μ ∈ S}) :
+    (ht : IsTightMeasureSet {((μ : ProbabilityMeasure G) : Measure G) | μ ∈ S}) :
   IsCompact (closure S) := by
   by_cases hempty : IsEmpty (closure S)
-  · simp_all only [isEmpty_coe_sort, isClosed_empty, IsClosed.closure_eq,
-    finite_empty, Finite.isCompact]
+  · simp_all only [isEmpty_coe_sort, finite_empty, Finite.isCompact]
   rw [not_isEmpty_iff] at hempty
   rw [Tight_closure_iff_tight, TightProb] at ht
   obtain ⟨μ , hμ⟩ := hempty
@@ -206,11 +190,17 @@ lemma Compact_if_tight {S : Set (ProbabilityMeasure G)}
     use K
     constructor
     all_goals simpa
-  haveI : MetricSpace (ProbabilityMeasure (ℕ → I)) :=
+  let : MetricSpace (ProbabilityMeasure (ℕ → I)) :=
     metrizableSpaceMetric (ProbabilityMeasure (ℕ → ↑I))
   haveI topeq := levyProkhorov_eq_convergenceInDistribution (Ω := G)
-  have h_compact : CompactSpace (ProbabilityMeasure (ℕ → I)) := by sorry
-  --rw [PseudoMetrizableSpace.isCompact_iff_isSeqCompact]
+
+  let h_compact' : CompactSpace (LevyProkhorov (ProbabilityMeasure (ℕ → I))) := by infer_instance
+
+  have h_compact : CompactSpace (ProbabilityMeasure (ℕ → I)) := by
+    convert h_compact'
+    exact levyProkhorov_eq_convergenceInDistribution (Ω := ℕ → I)
+    -- Need to obtain pseudometric space on N -> I, but this depends on PR#29321
+  stop
   letI psms : PseudoMetricSpace (ProbabilityMeasure G) :=
     pseudoMetrizableSpacePseudoMetric (ProbabilityMeasure G)
   rw [UniformSpace.isCompact_iff_isSeqCompact (s := closure S)]
@@ -229,6 +219,7 @@ lemma Compact_if_tight {S : Set (ProbabilityMeasure G)}
   --def to_lp (μ : ProbabilityMeasure (ℕ → I)) : LevyProkhorov (ProbabilityMeasure (ℕ → I)) := (μ : LevyProkhorov (ProbabilityMeasure (ℕ → I)))
   -- def from_lp (μ_lp : LevyProkhorov (ProbabilityMeasure (ℕ → I))) : ProbabilityMeasure (ℕ → I) :=
   --   (LevyProkhorov.equiv (ProbabilityMeasure (ℕ → I))) μ_lp
+  -- Potential easier way to work with both topologies
 
 
 
@@ -236,10 +227,6 @@ lemma Compact_if_tight {S : Set (ProbabilityMeasure G)}
 
   -- have homeo : ∃ T : G → Y, IsEmbedding T := homeo_to_compact_space
   -- obtain ⟨T, hT⟩ := homeo
-
-  --let ν n : ProbabilityMeasure
-  --rcases homeo with ⟨T,hT,l⟩
-  --choose T using homeo
 
 end
 end MeasureTheory

@@ -373,7 +373,7 @@ theorem homeothingamajig : ∃ funn : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbeddi
       have total_dist (n : ℕ) :  (2 ^ i)⁻¹ * (δ / 3) ≤ dist (txn (subseq n)) tx  := by
         simp [dist] --Can I get that this is summable?
         have summ : Summable fun (n_1 : ℕ) ↦ (2 ^ n_1)⁻¹ * min |(T_func X n_1 (txn (subseq n)).ofPiNat : ℝ) - ↑(T_func X n_1 tx.ofPiNat)| 1 := by
-          apply Summable.of_norm_bounded (fun i ↦ (2 ^ i)⁻¹)
+          apply Summable.of_norm_bounded (fun i ↦ ((2 ^ i) : ℝ)⁻¹)
           · simp_rw [←one_div,←one_div_pow]; exact summable_geometric_two
           · intro i
             simp only [norm_mul, norm_inv, norm_pow, Real.norm_ofNat, Real.norm_eq_abs, inv_pos,
@@ -384,7 +384,7 @@ theorem homeothingamajig : ∃ funn : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbeddi
         refine le_tsum (a := (2 ^ i)⁻¹ * (δ / 3)) (f := fun (n_1 : ℕ) ↦ (2 ^ n_1)⁻¹ *
           min |(T_func X n_1 (txn (subseq n)).ofPiNat : ℝ) - ↑(T_func X n_1 tx.ofPiNat)| 1)
           (b := i) ?_ ?_ ?_
-        simp only [inv_pos, Nat.ofNat_pos, pow_pos, mul_le_mul_left, le_inf_iff]
+        simp only [inv_pos, Nat.ofNat_pos, pow_pos, mul_le_mul_iff_right₀, le_inf_iff]
         swap; · intro t; positivity
         swap;· exact summ
         constructor
@@ -392,7 +392,6 @@ theorem homeothingamajig : ∃ funn : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbeddi
         linarith
       simp [total_dist, -eventually_atTop, ← not_le, NeBot.ne] at h_conv_txn
   }
-  --have secondstep : IsEmbedding (T_func X : (ℕ → X → Icc (0:ℝ) 1)) := by sorry
   let secondstep' : PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) ≃ₜ (ℕ → Icc (0:ℝ) 1) := {
     toFun := by
       intro a a_1
@@ -402,38 +401,15 @@ theorem homeothingamajig : ∃ funn : (X → (ℕ → Icc (0:ℝ) 1)), IsEmbeddi
         on_goal 2 => {rfl
         }
         · simp_all only [zero_le_one]
-      --ofPiNat (X := (ℕ → Icc (0:ℝ) 1))
-    invFun := --toPiNatEquiv (ℕ → ↑(Icc 0 1))
-
-    left_inv _ := sorry
-    right_inv _ := sorry
-    continuous_toFun := by
-      sorry
-    continuous_invFun := by sorry
+    -- Solution rehash on branch more_pi_nat of mathlib fork dependent on #29321
 
   }
-  --have := IsEmbedding.homeomorphImage (hf := secondstep)
 
 
 
 #exit
 
 instance : SequentialSpace <| PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X) := FrechetUrysohnSpace.to_sequentialSpace
-
-lemma isEmbedding_toPiNaticc :
-    IsEmbedding (toPiNat : X → PiNatEmbed X (fun n => Icc (0:ℝ) 1) (T_func X)) := by
-  rw [isEmbedding_iff_isInducing]
-  refine isInducing_iff_nhds.mpr ?_
-  intro x
-  rw [@Filter.ext_iff]
-  intro S
-  constructor
-  intro hS
-  · simp
-    use toPiNat '' S
-    constructor
-    rw [@mem_nhds_iff]
-  sorry
 
 
 
