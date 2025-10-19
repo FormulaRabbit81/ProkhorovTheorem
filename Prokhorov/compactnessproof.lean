@@ -1,3 +1,4 @@
+--The code in this file is not finished and contains useful lemmas for the final proof
 import Mathlib
 
 
@@ -157,7 +158,9 @@ open scoped PiCountable unitInterval
 
 omit [Nonempty X] in
 theorem embedding_to_compactspace : ∃ funn : X → ℕ → I, IsEmbedding funn := by sorry
---proven elsewhere and in process of PRing to Mathlib. Blocked by another PR
+--proven elsewhere and in process of PRing to Mathlib. Blocked by another PR. See metriccode for
+--details
+
 
 instance : PseudoEMetricSpace (ℕ → ↑I) := by
   sorry
