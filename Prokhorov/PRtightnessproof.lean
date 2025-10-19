@@ -3,6 +3,7 @@ Copyright (c) 2024 Josha Dekker. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Rémy Degenne, Josha Dekker
 -/
+import Mathlib.MeasureTheory.Measure.Tight
 import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 import Mathlib.MeasureTheory.Measure.RegularityCompacts
 
@@ -33,184 +34,83 @@ open Filter Set
 
 open scoped ENNReal NNReal Topology
 
-namespace ENNReal
+--This section has been PRed to mathlib:
 
--- TODO: `ENNReal.zpow_neg` looks undergeneral?
--- TODO: Same for `ENNReal.one_le_rpow`
+-- namespace ENNReal
 
-protected lemma inv_zpow (x : ℝ≥0∞) (n : ℤ) : x⁻¹ ^ n = (x ^ n)⁻¹ := by
-  simp [← rpow_intCast, inv_rpow]
-
-
-lemma zero_zpow_def (n : ℤ) : (0 : ℝ≥0∞) ^ n = if 0 < n then 0 else if n = 0 then 1 else ⊤ := by
-  have : (0 : ENNReal) ≠ ⊤ := zero_ne_top
-  rcases lt_trichotomy (0 : ℤ) n with (H | rfl | H)
-  swap; · simp
-  · split_ifs with ha
-    swap; · linarith
-    lift n to ℕ using Int.le_of_lt H
-    rw [zpow_natCast]
-    simp only [pow_eq_zero_iff', ne_eq, true_and]
-    exact Nat.ne_zero_iff_zero_lt.mpr <| Int.ofNat_pos.mp H
-  · split_ifs with ha hb
-    all_goals try linarith
-    induction n
-    all_goals try linarith
-    rw [neg_sub_comm,neg_sub_left,←Int.negSucc_eq, zpow_negSucc]
-    simp
-
-lemma top_zpow (n : ℤ) : (⊤ : ℝ≥0∞) ^ n = if 0 < n then ⊤ else if n = 0 then 1
-    else 0 := by
-  rw [← inv_zero, ENNReal.inv_zpow, zero_zpow_def]; split_ifs with h; all_goals simp
-
-protected lemma inv_zpow' (x : ℝ≥0∞) (n : ℤ) : x⁻¹ ^ n = x ^ (-n) := by
-  by_cases h0 : x = 0
-  · rw[h0, zero_zpow_def]
-    simp
-    rw [top_zpow]
-    split_ifs with ha hb hc hd he hf
-    all_goals try linarith
-    all_goals try rfl
-    have : n = 0 := (Int.le_antisymm (Int.not_lt.mp ha) (Int.not_lt.mp hf))
-    contradiction
-  by_cases h1 : x = ⊤
-  · rw [h1, inv_top, zero_zpow_def, top_zpow]
-    split_ifs with a b c d e f g h
-    all_goals try simp;
-    all_goals try linarith
-    · rw [neg_eq_zero] at f
-      contradiction
-    · rw [neg_eq_zero] at h
-      contradiction
-    simp only [Int.neg_pos, not_lt] at g a
-    have : n = 0 := Eq.symm (Int.le_antisymm g a)
-    contradiction
-  rw [ENNReal.inv_zpow, ←ENNReal.eq_inv_of_mul_eq_one_left]
-  rw [←ENNReal.zpow_add]
-  · simp
-  · exact h0
-  exact h1
-
-lemma zpow_le_one_of_nonpos {n : ℤ} (hn : n ≤ 0) {x : ℝ≥0∞} (hx : 1 ≤ x) : x ^ n ≤ 1 := by
-  obtain ⟨m, rfl⟩ := neg_surjective n
-  lift m to ℕ using by simpa using hn
-  rw [← ENNReal.inv_zpow', ENNReal.inv_zpow, ENNReal.inv_le_one]
-  exact mod_cast one_le_pow₀ hx
+-- protected lemma inv_zpow (x : ℝ≥0∞) (n : ℤ) : x⁻¹ ^ n = (x ^ n)⁻¹ := by
+--   simp [← rpow_intCast, inv_rpow]
 
 
-end ENNReal
+-- lemma zero_zpow_def (n : ℤ) : (0 : ℝ≥0∞) ^ n = if 0 < n then 0 else if n = 0 then 1 else ⊤ := by
+--   have : (0 : ENNReal) ≠ ⊤ := zero_ne_top
+--   rcases lt_trichotomy (0 : ℤ) n with (H | rfl | H)
+--   swap; · simp
+--   · split_ifs with ha
+--     swap; · linarith
+--     lift n to ℕ using Int.le_of_lt H
+--     rw [zpow_natCast]
+--     simp only [pow_eq_zero_iff', ne_eq, true_and]
+--     exact Nat.ne_zero_iff_zero_lt.mpr <| Int.ofNat_pos.mp H
+--   · split_ifs with ha hb
+--     all_goals try linarith
+--     induction n
+--     all_goals try linarith
+--     rw [neg_sub_comm,neg_sub_left,←Int.negSucc_eq, zpow_negSucc]
+--     simp
+
+-- lemma top_zpow (n : ℤ) : (⊤ : ℝ≥0∞) ^ n = if 0 < n then ⊤ else if n = 0 then 1
+--     else 0 := by
+--   rw [← inv_zero, ENNReal.inv_zpow, zero_zpow_def]; split_ifs with h; all_goals simp
+
+-- protected lemma inv_zpow' (x : ℝ≥0∞) (n : ℤ) : x⁻¹ ^ n = x ^ (-n) := by
+--   by_cases h0 : x = 0
+--   · rw[h0, zero_zpow_def]
+--     simp
+--     rw [top_zpow]
+--     split_ifs with ha hb hc hd he hf
+--     all_goals try linarith
+--     all_goals try rfl
+--     have : n = 0 := (Int.le_antisymm (Int.not_lt.mp ha) (Int.not_lt.mp hf))
+--     contradiction
+--   by_cases h1 : x = ⊤
+--   · rw [h1, inv_top, zero_zpow_def, top_zpow]
+--     split_ifs with a b c d e f g h
+--     all_goals try simp;
+--     all_goals try linarith
+--     · rw [neg_eq_zero] at f
+--       contradiction
+--     · rw [neg_eq_zero] at h
+--       contradiction
+--     simp only [Int.neg_pos, not_lt] at g a
+--     have : n = 0 := Eq.symm (Int.le_antisymm g a)
+--     contradiction
+--   rw [ENNReal.inv_zpow, ←ENNReal.eq_inv_of_mul_eq_one_left]
+--   rw [←ENNReal.zpow_add]
+--   · simp
+--   · exact h0
+--   exact h1
+
+-- lemma zpow_le_one_of_nonpos {n : ℤ} (hn : n ≤ 0) {x : ℝ≥0∞} (hx : 1 ≤ x) : x ^ n ≤ 1 := by
+--   obtain ⟨m, rfl⟩ := neg_surjective n
+--   lift m to ℕ using by simpa using hn
+--   rw [← ENNReal.inv_zpow', ENNReal.inv_zpow, ENNReal.inv_le_one]
+--   exact mod_cast one_le_pow₀ hx
+
+-- lemma ENNReal.tsum_two_zpow_neg_add_one :
+--     ∑' m : ℕ, 2 ^ (-1 - m  : ℤ) = (1 : ENNReal) := by
+--   simp_rw [neg_sub_left, ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num),
+--    ← Nat.cast_one (R := ℤ), ← Nat.cast_add, zpow_natCast, ENNReal.inv_pow,
+--    ENNReal.tsum_geometric_add_one, one_sub_inv_two, inv_inv]
+--   exact ENNReal.inv_mul_cancel (by simp) (by simp)
+
+-- end ENNReal
 namespace MeasureTheory
-
-variable {𝓧 𝓨 : Type*} [TopologicalSpace 𝓧] {m𝓧 : MeasurableSpace 𝓧}
-  {μ ν : Measure 𝓧} {S T : Set (Measure 𝓧)}
-
-/-- A set of measures `S` is tight if for all `0 < ε`, there exists a compact set `K` such that
-for all `μ ∈ S`, `μ Kᶜ ≤ ε`.
-This is formulated in terms of filters, and proven equivalent to the definition above
-in `IsTightMeasureSet_iff_exists_isCompact_measure_compl_le`. -/
-def IsTightMeasureSet (S : Set (Measure 𝓧)) : Prop :=
-  Tendsto (⨆ μ ∈ S, μ) (cocompact 𝓧).smallSets (𝓝 0)
-
-/-- A set of measures `S` is tight if for all `0 < ε`, there exists a compact set `K` such that
-for all `μ ∈ S`, `μ Kᶜ ≤ ε`. -/
-lemma IsTightMeasureSet_iff_exists_isCompact_measure_compl_le :
-    IsTightMeasureSet S ↔ ∀ ε, 0 < ε → ∃ K : Set 𝓧, IsCompact K ∧ ∀ μ ∈ S, μ (Kᶜ) ≤ ε := by
-  simp only [IsTightMeasureSet, ENNReal.tendsto_nhds ENNReal.zero_ne_top, gt_iff_lt, zero_add,
-    iSup_apply, mem_Icc, tsub_le_iff_right, zero_le, iSup_le_iff, true_and, eventually_smallSets,
-    mem_cocompact]
-  refine ⟨fun h ε hε ↦ ?_, fun h ε hε ↦ ?_⟩
-  · obtain ⟨A, ⟨K, h1, h2⟩, hA⟩ := h ε hε
-    exact ⟨K, h1, hA Kᶜ h2⟩
-  · obtain ⟨K, h1, h2⟩ := h ε hε
-    exact ⟨Kᶜ, ⟨K, h1, subset_rfl⟩, fun A hA μ hμS ↦ (μ.mono hA).trans (h2 μ hμS)⟩
-
-/-- Finite measures that are inner regular with respect to closed compact sets are tight. -/
-theorem isTightMeasureSet_singleton_of_innerRegularWRT [OpensMeasurableSpace 𝓧] [IsFiniteMeasure μ]
-    (h : μ.InnerRegularWRT (fun s ↦ IsCompact s ∧ IsClosed s) MeasurableSet) :
-    IsTightMeasureSet {μ} := by
-  rw [IsTightMeasureSet_iff_exists_isCompact_measure_compl_le]
-  intro ε hε
-  let r := μ Set.univ
-  cases lt_or_ge ε r with
-  | inl hεr =>
-    have hεr' : r - ε < r := ENNReal.sub_lt_self (measure_ne_top μ _) (zero_le'.trans_lt hεr).ne'
-      hε.ne'
-    obtain ⟨K, _, ⟨hK_compact, hK_closed⟩, hKμ⟩ := h .univ (r - ε) hεr'
-    refine ⟨K, hK_compact, ?_⟩
-    simp only [mem_singleton_iff, forall_eq]
-    rw [measure_compl hK_closed.measurableSet (measure_ne_top μ _), tsub_le_iff_right]
-    rw [ENNReal.sub_lt_iff_lt_right (ne_top_of_lt hεr) hεr.le, add_comm] at hKμ
-    exact hKμ.le
-  | inr hεr => exact ⟨∅, isCompact_empty, by simpa⟩
-
-/-- Inner regular finite measures on T2 spaces are tight. -/
-lemma isTightMeasureSet_singleton_of_innerRegular [T2Space 𝓧] [OpensMeasurableSpace 𝓧]
-    [IsFiniteMeasure μ] [h : μ.InnerRegular] :
-    IsTightMeasureSet {μ} := by
-  refine isTightMeasureSet_singleton_of_innerRegularWRT ?_
-  intro s hs r hr
-  obtain ⟨K, hKs, hK_compact, hμK⟩ := h.innerRegular hs r hr
-  exact ⟨K, hKs, ⟨hK_compact, hK_compact.isClosed⟩, hμK⟩
-
-/-- In a complete second-countable pseudo-metric space, finite measures are tight. -/
-theorem isTightMeasureSet_singleton {α : Type*} {mα : MeasurableSpace α}
-    [PseudoEMetricSpace α] [CompleteSpace α] [SecondCountableTopology α] [BorelSpace α]
-    {μ : Measure α} [IsFiniteMeasure μ] :
-    IsTightMeasureSet {μ} :=
-  isTightMeasureSet_singleton_of_innerRegularWRT
-    (innerRegular_isCompact_isClosed_measurableSet_of_finite _)
-
-namespace IsTightMeasureSet
-
-/-- In a compact space, every set of measures is tight. -/
-lemma of_compactSpace [CompactSpace 𝓧] : IsTightMeasureSet S := by
-  simp only [IsTightMeasureSet, cocompact_eq_bot, smallSets_bot, tendsto_pure_left, iSup_apply,
-    measure_empty, ENNReal.iSup_zero, ciSup_const]
-  exact fun _ ↦ mem_of_mem_nhds
-
-protected lemma subset (hT : IsTightMeasureSet T) (hST : S ⊆ T) :
-    IsTightMeasureSet S :=
-  tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds hT (fun _ ↦ by simp)
-    (iSup_le_iSup_of_subset hST)
-
-protected lemma union (hS : IsTightMeasureSet S) (hT : IsTightMeasureSet T) :
-    IsTightMeasureSet (S ∪ T) := by
-  rw [IsTightMeasureSet, iSup_union]
-  convert Tendsto.sup_nhds hS hT
-  simp
-
-protected lemma inter (hS : IsTightMeasureSet S) (T : Set (Measure 𝓧)) :
-    IsTightMeasureSet (S ∩ T) :=
-  hS.subset inter_subset_left
-
-lemma map [TopologicalSpace 𝓨] [MeasurableSpace 𝓨] [OpensMeasurableSpace 𝓨] [T2Space 𝓨]
-    (hS : IsTightMeasureSet S) {f : 𝓧 → 𝓨} (hf : Continuous f) :
-    IsTightMeasureSet (Measure.map f '' S) := by
-  rw [IsTightMeasureSet_iff_exists_isCompact_measure_compl_le] at hS ⊢
-  simp only [mem_image, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂]
-  intro ε hε
-  obtain ⟨K, hK_compact, hKS⟩ := hS ε hε
-  refine ⟨f '' K, hK_compact.image hf, fun μ hμS ↦ ?_⟩
-  by_cases hf_meas : AEMeasurable f μ
-  swap; · simp [Measure.map_of_not_aemeasurable hf_meas]
-  rw [Measure.map_apply_of_aemeasurable hf_meas (hK_compact.image hf).measurableSet.compl]
-  refine (measure_mono ?_).trans (hKS μ hμS)
-  simp only [preimage_compl, compl_subset_compl]
-  exact subset_preimage_image f K
-
-end IsTightMeasureSet
-
 
 open Metric ENNReal NNReal ProbabilityMeasure TopologicalSpace
 
 variable {X : Type*} [MeasurableSpace X] [PseudoMetricSpace X] (S : Set (ProbabilityMeasure X))
 
-lemma ENNReal.tsum_two_zpow_neg_add_one :
-    ∑' m : ℕ, 2 ^ (-1 - m  : ℤ) = (1 : ENNReal) := by
-  simp_rw [neg_sub_left, ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num),
-   ← Nat.cast_one (R := ℤ), ← Nat.cast_add, zpow_natCast, ENNReal.inv_pow,
-   ENNReal.tsum_geometric_add_one, one_sub_inv_two, inv_inv]
-  exact ENNReal.inv_mul_cancel (by simp) (by simp)
 
 lemma lt_geom_series (D : ℕ → X) (ε : ℝ≥0∞) (μ : ProbabilityMeasure X) (hs : μ ∈ S) (km : ℕ → ℕ)
     (hbound : ∀ k : ℕ, ∀ μ ∈ S, μ (⋃ i, ⋃ (_ : i ≤ km k), ball (D i) (1 / (↑k + 1))) >
@@ -368,7 +268,7 @@ theorem IsTight_of_isRelativelyCompact (hcomp : IsCompact (closure S)) :
   use bigK
   constructor
   -- Compactness first
-  · refine isCompact_of_totallyBounded_isClosed ?_ ?_
+  · refine TotallyBounded.isCompact_of_isClosed ?_ ?_
     --Totally bounded
     · refine Metric.totallyBounded_iff.mpr ?_
       intro δ δpos

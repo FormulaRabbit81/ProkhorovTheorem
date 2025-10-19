@@ -1,12 +1,13 @@
-/- This code is not mine, and comes from https://github.com/janemms/BanachAlaoglu-/
+/- The start of this code is not mine, and comes from https://github.com/janemms/BanachAlaoglu.
+I use it to prove there is an embedding of a separable metric space into the hilbert cube, which is
+compact.-/
 
 /-
 Copyright (c) 2025 Janette Setälä, Yaël Dillies, Kalle Kytölä. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Janette Setälä, Yaël Dillies, Kalle Kytölä
 -/
-import Mathlib--.Analysis.NormedSpace.FunctionSeries
---import Mathlib.Analysis.SpecificLimits.Basic
+import Mathlib
 
 /-!
 # Embedding a countably separated space inside a space of sequences
@@ -15,15 +16,16 @@ This file proves that a topological `X` separated by countably many continuous f
 where the `Y n` are metric spaces, then `X` can be embedded inside the product `∀ n, Y n`.
 -/
 
--- TODO: Tag in mathlib
+
 attribute [simp] abs_mul abs_inv ENNReal.ofReal_mul ENNReal.ofReal_inv_of_pos ENNReal.ofReal_pow
 
 namespace ENNReal
 
-lemma ofReal_mono : Monotone ENNReal.ofReal := fun _ _ ↦ ENNReal.ofReal_le_ofReal
+--
+-- lemma ofReal_mono : Monotone ENNReal.ofReal := fun _ _ ↦ ENNReal.ofReal_le_ofReal
 
-@[simp] lemma ofReal_min (x y : ℝ) : ENNReal.ofReal (min x y) = min (.ofReal x) (.ofReal y) :=
-  ofReal_mono.map_min
+-- @[simp] lemma ofReal_min (x y : ℝ) : ENNReal.ofReal (min x y) = min (.ofReal x) (.ofReal y) :=
+--   ofReal_mono.map_min
 
 @[simp] lemma ofReal_dist {X : Type*} [PseudoMetricSpace X] (x y : X) :
     .ofReal (dist x y) = edist x y := by simp [edist_dist]

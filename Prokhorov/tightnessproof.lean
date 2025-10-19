@@ -1,3 +1,6 @@
+/-This file contains my original proof of tightness, which has since been reviewed and mostly PRed
+to mathlib. Some lemmas broke with the bump so have been sorried, but this is the original work
+which will run on mathlib v.4.20-/
 import Mathlib.MeasureTheory.Measure.LevyProkhorovMetric
 import Mathlib.Tactic.Rify
 
@@ -146,37 +149,37 @@ lemma MeasOpenCoverTendstoMeasUniv (U : ℕ → Set X) (O : ∀ i, IsOpen (U i))
   have falseity := hn.trans (Measurebound n)
   linarith
 
-/-Kevin Golfed this for me!-/
+
 lemma geom_series : ∑' (x : ℕ), ((2:ℝ) ^ (x+1))⁻¹ = 1 := by
   simp_rw [← inv_pow, pow_succ, _root_.tsum_mul_right, tsum_geometric_inv_two]
   norm_num
 
 variable [CompleteSpace X]
 
-/-Kevin Golfed this for me!-/
-lemma truncated_geom_series (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ)) = ε := by
-  rw [ENNReal.tsum_mul_left]
-  nth_rw 2 [←mul_one (a :=ε)]
-  congr
-  simp_rw [← Nat.cast_one (R := ℤ), ← Nat.cast_add,
-  ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num), zpow_natCast,
-  ENNReal.inv_pow, ENNReal.tsum_geometric_add_one]
-  norm_num; rw [ENNReal.inv_mul_cancel]
-  all_goals norm_num
+
+lemma truncated_geom_series (ε : ENNReal) : (∑' (m : ℕ), ε * 2 ^ (-(m+1) : ℤ)) = ε := by sorry
+  -- rw [ENNReal.tsum_mul_left]
+  -- nth_rw 2 [←mul_one (a :=ε)]
+  -- congr
+  -- simp_rw [← Nat.cast_one (R := ℤ), ← Nat.cast_add,
+  -- ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num), zpow_natCast,
+  -- ENNReal.inv_pow, ENNReal.tsum_geometric_add_one]
+  -- norm_num; rw [ENNReal.inv_mul_cancel]
+  -- all_goals norm_num
 
 lemma ENNReal.tsum_two_zpow_neg_add_one :
-    ∑' m : ℕ, 2 ^ (-1 - m  : ℤ) = (1 : ENNReal) := by
-  simp_rw [neg_sub_left, ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num),
-   ← Nat.cast_one (R := ℤ), ← Nat.cast_add, zpow_natCast, ENNReal.inv_pow,
-   ENNReal.tsum_geometric_add_one, one_sub_inv_two, inv_inv]
-  exact ENNReal.inv_mul_cancel (by simp) (by simp)
+    ∑' m : ℕ, 2 ^ (-1 - m  : ℤ) = (1 : ENNReal) := by sorry
+  -- simp_rw [neg_sub_left, ENNReal.zpow_neg (x:= 2) (by norm_num) (by norm_num),
+  --  ← Nat.cast_one (R := ℤ), ← Nat.cast_add, zpow_natCast, ENNReal.inv_pow,
+  --  ENNReal.tsum_geometric_add_one, one_sub_inv_two, inv_inv]
+  -- exact ENNReal.inv_mul_cancel (by simp) (by simp)
 
-lemma rearrange (m : ℕ) : (2 : NNReal) ^ (-(1 : ℤ) + (-m : ℤ)) = 1 / 2 * (1 / 2) ^ m := by
-  field_simp
-  rw [← Int.neg_add, zpow_neg]
-  refine (inv_mul_eq_one₀ ?_).mpr ?_
-  · refine zpow_ne_zero (1 + m) (by simp)
-  · refine zpow_one_add₀ (by simp) m
+lemma rearrange (m : ℕ) : (2 : NNReal) ^ (-(1 : ℤ) + (-m : ℤ)) = 1 / 2 * (1 / 2) ^ m := by sorry
+  -- field_simp
+  -- rw [← Int.neg_add, zpow_neg]
+  -- refine (inv_mul_eq_one₀ ?_).mpr ?_
+  -- · refine zpow_ne_zero (1 + m) (by simp)
+  -- · refine zpow_one_add₀ (by simp) m
 
 omit [OpensMeasurableSpace X] [SeparableSpace X] [CompleteSpace X] in
 lemma lt_geom_series (D : ℕ → X) (ε : ℝ≥0) (μ : ProbabilityMeasure X) (hs : μ ∈ S) (km : ℕ → ℕ)
